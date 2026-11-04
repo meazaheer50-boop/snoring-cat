@@ -185,92 +185,158 @@
 
   let ctx = null;          // AudioContext, created on the first tap (browsers require a user gesture)
   let master = null;       // master gain, used for mute
-  let noiseBuffer = null;
+  let breaths = [];        // pre-rendered snore breaths
   let snoreTimer = null;
   let muted = false;
 
   // ---------- Snore synthesis (no audio files needed) ----------
-  function makeNoiseBuffer(c) {
-    const len = c.sampleRate * 2;
-    const buf = c.createBuffer(1, len, c.sampleRate);
-    const data = buf.getChannelData(0);
-    let last = 0;
-    for (let i = 0; i < len; i++) {
-      // brown-ish noise: soft and low, like breath
-      const white = Math.random() * 2 - 1;
-      last = (last + 0.04 * white) / 1.04;
-      data[i] = last * 3.5;
-    }
-    return buf;
+  // A snore is the soft palate flapping ~20-40 times a second. Each flap is a tiny
+  // click; the throat turns that click train into a rattly, vowel-like "rrrr".
+  // So: pulse train -> throat resonances (formants) + breath noise, shaped by an
+  // inhale (louder, rattly) and a softer, breathier exhale.
+  function rng(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
   }
 
-  // One breath: a noisy "inhale" with a fast flutter (the rattle), then a softer "exhale".
+  // two-pole resonator, coefficients refreshed as the formant moves
+  function makeResonator() {
+    return { y1: 0, y2: 0, a: 0, b1: 0, b2: 0 };
+  }
+  function tune(r, f, bw, sr) {
+    const rad = Math.exp(-Math.PI * bw / sr);
+    const th = 2 * Math.PI * f / sr;
+    r.b1 = 2 * rad * Math.cos(th);
+    r.b2 = -rad * rad;
+    r.a = (1 - rad) * 1.6;
+  }
+  function run(r, x) {
+    const y = r.a * x + r.b1 * r.y1 + r.b2 * r.y2;
+    r.y2 = r.y1; r.y1 = y;
+    return y;
+  }
+
+  function renderBreath(sr, seed) {
+    const rand = rng(seed);
+    const Ti = 1.2 + rand() * 0.25;     // inhale length
+    const Te = 1.3 + rand() * 0.3;      // exhale length
+    const gap = 0.12;                   // tiny pause between inhale and exhale
+    const dur = Ti + gap + Te + 0.2;
+    const n = Math.floor(sr * dur);
+    const out = new Float32Array(n);
+
+    // throat resonances: [centre Hz, bandwidth Hz, level]
+    const pulseF = [makeResonator(), makeResonator(), makeResonator(), makeResonator()];
+    const noiseF = [makeResonator(), makeResonator(), makeResonator()];
+    const hissF = makeResonator();
+
+    let phase = 0, jit = 0, lowN = 0, hp1 = 0, hpPrev = 0;
+    let amp = 0.7;
+    const pw = 0.0024;                  // width of one flap click (seconds)
+    let prevG = 0;
+
+    for (let i = 0; i < n; i++) {
+      const t = i / sr;
+      let inh = 0, exh = 0, x = 0, y = 0;
+      if (t < Ti) { x = t / Ti; inh = Math.pow(x, 1.4) * (1 - 0.85 * Math.pow(x, 6)); }
+      else if (t > Ti + gap && t < Ti + gap + Te) {
+        y = (t - Ti - gap) / Te;
+        exh = 0.5 * Math.pow(Math.sin(Math.PI * y), 1.3) * (1 - 0.3 * y);
+      }
+      const env = inh + exh;
+
+      // update filters and pitch every 32 samples
+      if ((i & 31) === 0) {
+        const m = t < Ti ? x : y;                          // progress within this half-breath
+        const open = t < Ti ? 1 : 0.8;                     // exhale slightly lower / darker
+        tune(pulseF[0], (300 + 110 * m) * open, 150, sr);
+        tune(pulseF[1], (820 + 260 * m) * open, 240, sr);
+        tune(pulseF[2], (1700 + 500 * m) * open, 420, sr);
+        tune(pulseF[3], 2700 * open, 700, sr);
+        tune(noiseF[0], 520 * open, 320, sr);
+        tune(noiseF[1], 1300 * open, 600, sr);
+        tune(noiseF[2], 2500 * open, 1100, sr);
+        tune(hissF, 3600, 1800, sr);
+        jit += ((rand() * 2 - 1) - jit) * 0.12;            // slow random wobble
+      }
+
+      // flap rate: ~24 Hz rising to ~40 Hz on the inhale, lower and slower on the exhale
+      const f0 = (t < Ti ? 24 + 16 * x : 19 + 8 * (1 - y)) * (1 + 0.14 * jit);
+      phase += f0 / sr;
+      let g = 0;
+      if (phase >= 1) { phase -= 1; amp = 0.65 + 0.35 * rand(); }
+      const pwFrac = Math.min(0.3, pw * f0);
+      if (phase < pwFrac) g = Math.sin(Math.PI * phase / pwFrac) * amp;
+      const click = (g - prevG) * 6;                       // sharp onset = lots of harmonics
+      prevG = g;
+
+      // throat-filtered pulse train
+      let s = run(pulseF[0], click) * 1.0 + run(pulseF[1], click) * 0.75
+            + run(pulseF[2], click) * 0.45 + run(pulseF[3], click) * 0.2;
+
+      // breath noise: strong under the exhale, light under the inhale
+      const white = rand() * 2 - 1;
+      lowN += (white - lowN) * 0.5;
+      let b = run(noiseF[0], lowN) * 1.0 + run(noiseF[1], lowN) * 0.8 + run(noiseF[2], lowN) * 0.4;
+      const hiss = run(hissF, white) * 0.5;
+
+      const pulseGain = inh * 1.4 + exh * 0.22;
+      const noiseGain = inh * 0.3 + exh * 0.3;
+      let v = s * pulseGain + (b + hiss) * noiseGain;
+
+      // high-pass ~110 Hz: phone speakers can't play the deep rumble anyway
+      hp1 = 0.985 * (hp1 + v - hpPrev); hpPrev = v;
+      out[i] = hp1;
+    }
+
+    // normalise, soft-limit, fade the edges
+    let peak = 0;
+    for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(out[i]));
+    const k = 1.9 / (peak || 1);
+    const fade = Math.floor(sr * 0.03);
+    for (let i = 0; i < n; i++) {
+      let v = Math.tanh(out[i] * k) * 0.92;
+      if (i < fade) v *= i / fade;
+      if (i > n - fade) v *= (n - i) / fade;
+      out[i] = v;
+    }
+    return out;
+  }
+
+  function makeBreaths(c) {
+    const list = [];
+    for (let k = 0; k < 4; k++) {
+      const data = renderBreath(c.sampleRate, 1000 + k * 7919);
+      const buf = c.createBuffer(1, data.length, c.sampleRate);
+      buf.getChannelData(0).set(data);
+      list.push(buf);
+    }
+    return list;
+  }
+
   function snoreOnce() {
-    if (!ctx) return;
-    const t0 = ctx.currentTime + 0.05;
-    const inhale = 1.15, exhale = 1.35;
-
-    // --- noisy breath ---
+    if (!ctx || !breaths.length) return 3000;
+    const buf = breaths[Math.floor(Math.random() * breaths.length)];
     const src = ctx.createBufferSource();
-    src.buffer = noiseBuffer;
-    src.loop = true;
-
-    const band = ctx.createBiquadFilter();
-    band.type = 'bandpass';
-    band.Q.value = 1.1;
-    band.frequency.setValueAtTime(260, t0);
-    band.frequency.linearRampToValueAtTime(520, t0 + inhale);          // inhale gets brighter
-    band.frequency.exponentialRampToValueAtTime(220, t0 + inhale + exhale);
-
-    const breath = ctx.createGain();
-    breath.gain.setValueAtTime(0.0001, t0);
-    breath.gain.exponentialRampToValueAtTime(0.9, t0 + inhale * 0.85);
-    breath.gain.exponentialRampToValueAtTime(0.35, t0 + inhale + 0.15);
-    breath.gain.exponentialRampToValueAtTime(0.0001, t0 + inhale + exhale);
-
-    // --- the rattle: amplitude flutter at ~28 Hz, mostly on the inhale ---
-    const flutter = ctx.createGain();
-    flutter.gain.value = 0.55;
-    const lfo = ctx.createOscillator();
-    lfo.type = 'sawtooth';
-    lfo.frequency.setValueAtTime(24, t0);
-    lfo.frequency.linearRampToValueAtTime(34, t0 + inhale);
-    lfo.frequency.linearRampToValueAtTime(14, t0 + inhale + exhale);
-    const lfoDepth = ctx.createGain();
-    lfoDepth.gain.setValueAtTime(0.0001, t0);
-    lfoDepth.gain.linearRampToValueAtTime(0.45, t0 + inhale * 0.7);
-    lfoDepth.gain.linearRampToValueAtTime(0.15, t0 + inhale + exhale);
-    lfo.connect(lfoDepth).connect(flutter.gain);
-
-    // --- low throaty tone under the noise ---
-    const osc = ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(62, t0);
-    osc.frequency.linearRampToValueAtTime(88, t0 + inhale);
-    osc.frequency.linearRampToValueAtTime(52, t0 + inhale + exhale);
-    const lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.value = 340;
-    const oscGain = ctx.createGain();
-    oscGain.gain.setValueAtTime(0.0001, t0);
-    oscGain.gain.exponentialRampToValueAtTime(0.28, t0 + inhale * 0.8);
-    oscGain.gain.exponentialRampToValueAtTime(0.0001, t0 + inhale + exhale);
-    osc.connect(lp).connect(oscGain).connect(flutter);
-
-    src.connect(band).connect(breath).connect(flutter);
-    flutter.connect(master);
-
-    const end = t0 + inhale + exhale + 0.1;
-    src.start(t0); osc.start(t0); lfo.start(t0);
-    src.stop(end); osc.stop(end); lfo.stop(end);
+    src.buffer = buf;
+    src.playbackRate.value = 0.96 + Math.random() * 0.08;   // each snore a little different
+    const g = ctx.createGain();
+    g.gain.value = 0.9 + Math.random() * 0.1;
+    src.connect(g).connect(master);
+    src.start(ctx.currentTime + 0.03);
+    return (buf.duration / src.playbackRate.value) * 1000;
   }
 
   function startSnoring() {
     if (snoreTimer) return;
     const loop = () => {
-      snoreOnce();
-      // a full breath is ~2.5s, then a short pause; slightly irregular so it feels alive
-      snoreTimer = setTimeout(loop, 3400 + Math.random() * 500);
+      const ms = snoreOnce();
+      snoreTimer = setTimeout(loop, ms + 250 + Math.random() * 450);   // short pause between breaths
     };
     loop();
   }
@@ -291,7 +357,7 @@
       master = ctx.createGain();
       master.gain.value = muted ? 0 : 1;
       master.connect(ctx.destination);
-      noiseBuffer = makeNoiseBuffer(ctx);
+      breaths = makeBreaths(ctx);
       if (ctx.state === 'suspended') await ctx.resume();
       startSnoring();
     } catch (e) {
