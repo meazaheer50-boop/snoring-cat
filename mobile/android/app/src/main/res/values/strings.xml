@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Surprise</string>
+    <string name="title_activity_main">Surprise</string>
+    <string name="package_name">com.zaheer.snoringcat</string>
+    <string name="custom_url_scheme">com.zaheer.snoringcat</string>
+</resources>

@@ -1,0 +1,9 @@
+{
+  "appId": "com.zaheer.snoringcat",
+  "appName": "Surprise",
+  "webDir": "www",
+  "backgroundColor": "#1b1f3b",
+  "android": {
+    "adjustMarginsForEdgeToEdge": "force"
+  }
+}

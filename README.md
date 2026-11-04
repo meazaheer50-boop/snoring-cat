@@ -17,3 +17,9 @@ Then open http://localhost:8000.
 ## Deploy
 
 Every push to `main` deploys to GitHub Pages through `.github/workflows/pages.yml`.
+
+## Android APK
+
+`.github/workflows/android.yml` wraps the web app with Capacitor (`mobile/`) and builds a debug APK on GitHub.
+It runs on every change to the app, or manually from the Actions tab (**Build Android APK → Run workflow**).
+Download `snoring-cat-apk` from the finished run, unzip it, and install `app-debug.apk` on the phone.
