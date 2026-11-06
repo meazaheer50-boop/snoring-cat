@@ -7,6 +7,9 @@ on:
       - 'dua-tracker/**'
       - '.github/workflows/dua-android.yml'
 
+permissions:
+  contents: write
+
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -31,3 +34,11 @@ jobs:
           name: dua-tracker-apk
           path: dua-tracker/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      - name: Publish APK as a pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp dua-tracker/app/build/outputs/apk/debug/app-debug.apk DailyDuaTracker.apk
+          gh release delete dua-tracker-latest --cleanup-tag --yes || true
+          gh release create dua-tracker-latest DailyDuaTracker.apk --prerelease --target "${{ github.sha }}" --title "Daily Dua Tracker (debug build)" --notes "Debug build for Android. The recording is not included in this build. The Dua Qunoot text is transcribed from a video and not yet verified."
