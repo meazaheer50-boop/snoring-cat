@@ -21,3 +21,8 @@ Build > Generate App Bundles or APKs > Generate APKs (debug), or Generate Signed
 - Reminders are saved but do not send notifications yet.
 - Add Plus Jakarta Sans and Noto Naskh Arabic font files under res/font and use them in ui/theme/Type.kt.
 - Add Duas (library) and History screens.
+
+## Dua Qunoot with synced audio
+- The reader highlights the line being recited and scrolls with it. Tap a line to jump to it.
+- The recording is not stored in Git. Put `qunoot.mp3` in `app/src/main/assets/audio/` before building. Without it the dua still shows, with a note that audio is missing.
+- See REVIEW.md: the Arabic is transcribed from a video and needs checking.

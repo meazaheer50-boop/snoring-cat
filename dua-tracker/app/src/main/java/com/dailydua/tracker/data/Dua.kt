@@ -1,15 +1,23 @@
 package com.dailydua.tracker.data
 
-enum class TimeOfDay { MORNING, EVENING }
+enum class TimeOfDay { MORNING, EVENING, ANYTIME }
+
+/** One recited line, shown from [startMs] in the audio. */
+data class DuaLine(val startMs: Long, val arabic: String, val translation: String)
 
 data class Dua(
     val id: String,
     val title: String,
     val tag: String,
     val time: TimeOfDay,
-    val arabic: String,
-    val transliteration: String,
-    val translation: String,
+    val arabic: String = "",
+    val transliteration: String = "",
+    val translation: String = "",
+    /** Long duas shown line by line, in sync with the audio. */
+    val lines: List<DuaLine> = emptyList(),
+    /** File name under assets/audio, if a recording is bundled. */
+    val audioAsset: String? = null,
+    val source: String? = null,
 )
 
 /** Sample content only. Review and replace with verified duas before release. */
@@ -44,6 +52,12 @@ object SampleDuas {
             arabic = "بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا",
             transliteration = "Bismika Allahumma amutu wa ahya",
             translation = "In Your name, O Allah, I die and I live.",
+        ),
+        Dua(
+            id = "qunoot", title = "Dua Qunoot", tag = "Sheikh Mishary Al-Afasy · 11 min", time = TimeOfDay.ANYTIME,
+            lines = QunootData.lines,
+            audioAsset = "qunoot.mp3",
+            source = "Text transcribed from a video of the dua. Not yet verified.",
         ),
     )
 }

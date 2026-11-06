@@ -51,6 +51,10 @@ fun TodayScreen(ui: UiState, onOpen: (Dua) -> Unit) {
         items(duas.filter { it.time == TimeOfDay.EVENING }, key = { it.id }) { d ->
             DuaRow(d, d.id in ui.doneToday) { onOpen(d) }
         }
+        item { SectionLabel("Longer duas", Modifier.padding(top = 12.dp)) }
+        items(duas.filter { it.time == TimeOfDay.ANYTIME }, key = { it.id }) { d ->
+            DuaRow(d, d.id in ui.doneToday) { onOpen(d) }
+        }
     }
 }
 

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -44,6 +45,7 @@ import com.dailydua.tracker.ui.theme.Tokens
 fun DuaApp(vm: DuaViewModel = viewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     DuaTheme(ui.settings.theme) {
+      Box(Modifier.fillMaxSize()) {
         var tab by rememberSaveable { mutableStateOf(0) }
         var openId by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -60,6 +62,16 @@ fun DuaApp(vm: DuaViewModel = viewModel()) {
         }
 
         SampleDuas.all.firstOrNull { it.id == openId }?.let { dua ->
+            if (dua.lines.isNotEmpty()) {
+                DuaReaderScreen(
+                    dua = dua,
+                    done = dua.id in ui.doneToday,
+                    settings = ui.settings,
+                    onToggleDone = { vm.toggleDone(dua.id) },
+                    onClose = { openId = null },
+                )
+                return@let
+            }
             DuaSheet(
                 dua = dua,
                 done = dua.id in ui.doneToday,
@@ -68,6 +80,7 @@ fun DuaApp(vm: DuaViewModel = viewModel()) {
                 onDismiss = { openId = null },
             )
         }
+      }
     }
 }
 
