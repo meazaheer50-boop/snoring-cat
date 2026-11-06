@@ -3,7 +3,7 @@ package com.dailydua.tracker.data
 enum class TimeOfDay { MORNING, EVENING, ANYTIME }
 
 /** One recited line, shown from [startMs] in the audio. */
-data class DuaLine(val startMs: Long, val arabic: String, val translation: String)
+data class DuaLine(val startMs: Long, val arabic: String, val translation: String = "")
 
 data class Dua(
     val id: String,
@@ -58,6 +58,12 @@ object SampleDuas {
             lines = QunootData.lines,
             audioAsset = "qunoot.mp3",
             source = "Text transcribed from a video of the dua. Not yet verified.",
+        ),
+        Dua(
+            id = "khatm", title = "Dua Khatm al-Quran", tag = "Sheikh Mishary Al-Afasy · 17 min", time = TimeOfDay.ANYTIME,
+            lines = KhatmData.lines,
+            audioAsset = "khatm.mp3",
+            source = "Text from YouTube's automatic captions, without vowel marks and without translation. Not yet verified.",
         ),
     )
 }

@@ -152,7 +152,7 @@ fun DuaReaderScreen(
                         color = c.ink,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    if (settings.showTranslation) {
+                    if (settings.showTranslation && line.translation.isNotBlank()) {
                         Spacer(Modifier.height(4.dp))
                         Text(line.translation, style = DuaType.body, color = if (active) c.ink else c.inkMuted)
                     }
