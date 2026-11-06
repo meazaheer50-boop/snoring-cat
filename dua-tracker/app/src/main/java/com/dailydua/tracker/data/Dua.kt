@@ -1,0 +1,49 @@
+package com.dailydua.tracker.data
+
+enum class TimeOfDay { MORNING, EVENING }
+
+data class Dua(
+    val id: String,
+    val title: String,
+    val tag: String,
+    val time: TimeOfDay,
+    val arabic: String,
+    val transliteration: String,
+    val translation: String,
+)
+
+/** Sample content only. Review and replace with verified duas before release. */
+object SampleDuas {
+    val all = listOf(
+        Dua(
+            id = "waking", title = "On waking", tag = "Morning", time = TimeOfDay.MORNING,
+            arabic = "الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ",
+            transliteration = "Alhamdu lillahil-ladhi ahyana ba’da ma amatana wa ilayhin-nushur",
+            translation = "All praise is for Allah who gave us life after causing us to die, and to Him is the return.",
+        ),
+        Dua(
+            id = "leaving", title = "Leaving home", tag = "Morning", time = TimeOfDay.MORNING,
+            arabic = "بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ",
+            transliteration = "Bismillah, tawakkaltu ’alallah",
+            translation = "In the name of Allah, I place my trust in Allah.",
+        ),
+        Dua(
+            id = "before-eating", title = "Before eating", tag = "Anytime", time = TimeOfDay.MORNING,
+            arabic = "بِسْمِ اللَّهِ",
+            transliteration = "Bismillah",
+            translation = "In the name of Allah.",
+        ),
+        Dua(
+            id = "after-eating", title = "After eating", tag = "Anytime", time = TimeOfDay.EVENING,
+            arabic = "الْحَمْدُ لِلَّهِ",
+            transliteration = "Alhamdulillah",
+            translation = "All praise is for Allah.",
+        ),
+        Dua(
+            id = "sleep", title = "Before sleep", tag = "Evening", time = TimeOfDay.EVENING,
+            arabic = "بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا",
+            transliteration = "Bismika Allahumma amutu wa ahya",
+            translation = "In Your name, O Allah, I die and I live.",
+        ),
+    )
+}
