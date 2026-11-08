@@ -2,7 +2,17 @@ package com.dailydua.tracker.ui
 
 import android.graphics.BitmapFactory
 import androidx.activity.compose.BackHandler
+import android.app.Activity
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -77,6 +87,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dailydua.tracker.data.Mushaf
 import com.dailydua.tracker.data.MushafSurah
@@ -282,14 +293,29 @@ fun MushafReader(
     val scope = rememberCoroutineScope()
     var zoomed by remember { mutableStateOf(false) }
     var chrome by remember { mutableStateOf(true) }
-    var verseMode by rememberSaveable { mutableStateOf(false) }
+    var pagesMode by rememberSaveable { mutableStateOf(false) }
+    var showEnglish by rememberSaveable { mutableStateOf(false) }
+    var fullscreen by rememberSaveable { mutableStateOf(false) }
+    val view = LocalView.current
+    DisposableEffect(fullscreen) {
+        val window = (view.context as? Activity)?.window
+        val controller = window?.let { WindowCompat.getInsetsController(it, view) }
+        if (fullscreen) {
+            controller?.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller?.hide(WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller?.show(WindowInsetsCompat.Type.systemBars())
+        }
+        onDispose { controller?.show(WindowInsetsCompat.Type.systemBars()) }
+    }
     LaunchedEffect(pager) { snapshotFlow { pager.currentPage }.collect { onPageChange(it) } }
     val ps by PlayerHub.state.collectAsStateWithLifecycle()
     val dua = SampleDuas.all.firstOrNull { it.id == surah.audioDuaId }
     val playingThis = dua != null && ps.mediaId == dua.id && ps.isPlaying
     val ask = LocalAskNotifications.current
-    val paper = if (c.isDark) Color(0xFF0D1914) else Color(0xFFFAF4E6)
+    val paper = if (c.isDark) Color(0xFF0D1914) else Color(0xFFFBF7EC)
     val gold = if (c.isDark) Color(0xFFD9B35A) else Color(0xFFB8860B)
+    val showChrome = chrome && !fullscreen
 
     Box(
         Modifier
@@ -303,6 +329,7 @@ fun MushafReader(
                 .navigationBarsPadding(),
         ) {
             // Surah banner, always visible, like a printed mushaf header.
+            AnimatedVisibility(!fullscreen) {
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -325,10 +352,11 @@ fun MushafReader(
                     modifier = Modifier.weight(1f),
                 )
             }
+            }
 
             Box(Modifier.weight(1f).fillMaxWidth()) {
-                if (verseMode) {
-                    VerseList(surah, gold, onTap = { chrome = !chrome })
+                if (!pagesMode) {
+                    TextReader(surah, gold, showEnglish, onTap = { if (!fullscreen) chrome = !chrome })
                 } else {
                     HorizontalPager(
                         state = pager,
@@ -336,13 +364,13 @@ fun MushafReader(
                         userScrollEnabled = !zoomed,
                         modifier = Modifier.fillMaxSize(),
                     ) { page ->
-                        MushafPage(surah, page, onZoomChange = { zoomed = it }, onTap = { chrome = !chrome })
+                        MushafPage(surah, page, onZoomChange = { zoomed = it }, onTap = { if (!fullscreen) chrome = !chrome })
                     }
                 }
             }
 
             // Page number medallion.
-            if (!verseMode) {
+            if (pagesMode && !fullscreen) {
                 Box(Modifier.fillMaxWidth().padding(vertical = 6.dp), contentAlignment = Alignment.Center) {
                     Box(
                         Modifier
@@ -356,7 +384,7 @@ fun MushafReader(
             }
 
             AnimatedVisibility(
-                chrome,
+                showChrome,
                 enter = fadeIn() + slideInVertically { it / 2 },
                 exit = fadeOut() + slideOutVertically { it / 2 },
             ) {
@@ -377,10 +405,25 @@ fun MushafReader(
                         contentAlignment = Alignment.Center,
                     ) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = c.ink) }
                     Pill(
-                        text = if (verseMode) "Mushaf" else "Verses",
+                        text = if (pagesMode) "Text" else "Pages",
                         filled = false,
                         modifier = Modifier.weight(1f).testTag("verseToggle"),
-                    ) { verseMode = !verseMode }
+                    ) { pagesMode = !pagesMode }
+                    if (!pagesMode) {
+                        Pill(
+                            text = if (showEnglish) "Arabic" else "English",
+                            filled = false,
+                            modifier = Modifier.weight(1f).testTag("englishToggle"),
+                        ) { showEnglish = !showEnglish }
+                    }
+                    Box(
+                        Modifier
+                            .size(48.dp)
+                            .glassSurface(shape = CircleShape, variant = GlassVariant.FROST)
+                            .testTag("fullscreen")
+                            .bounceClick(role = Role.Button, onClickLabel = "Full screen") { fullscreen = true; chrome = false },
+                        contentAlignment = Alignment.Center,
+                    ) { Icon(AppIcons.Fullscreen, contentDescription = "Full screen", tint = c.ink) }
                     if (dua != null) {
                         Pill(
                             text = if (playingThis) "Pause" else "Listen",
@@ -392,19 +435,37 @@ fun MushafReader(
                 }
             }
         }
+        if (fullscreen) {
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .statusBarsPadding()
+                    .padding(10.dp)
+                    .size(44.dp)
+                    .glassSurface(shape = CircleShape, variant = GlassVariant.FROST)
+                    .testTag("exitFullscreen")
+                    .bounceClick(role = Role.Button, onClickLabel = "Exit full screen") { fullscreen = false; chrome = true },
+                contentAlignment = Alignment.Center,
+            ) { Icon(AppIcons.FullscreenExit, contentDescription = "Exit full screen", tint = c.ink) }
+        }
     }
 }
 
+private fun arabicDigits(n: String) = n.map { if (it in '0'..'9') '\u0660' + (it - '0') else it }.joinToString("")
+
 @Composable
-private fun VerseList(surah: MushafSurah, gold: Color, onTap: () -> Unit) {
+private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, onTap: () -> Unit) {
     val c = Tokens.colors
     val dua = SampleDuas.all.first { it.id == surah.id }
+    val numbered = Regex("^(\\d+)\\.\\s*(.*)$", RegexOption.DOT_MATCHES_ALL)
+    val verses = dua.lines.mapNotNull { l -> numbered.find(l.translation)?.let { Triple(it.groupValues[1], l.arabic, it.groupValues[2]) } }
+    val bismillah = dua.lines.firstOrNull { it.arabic.startsWith("بِسْمِ") }
     LazyColumn(
         Modifier
             .fillMaxSize()
             .pointerInput(Unit) { detectTapGestures(onTap = { onTap() }) },
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+        contentPadding = PaddingValues(horizontal = 22.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
             Column(Modifier.fillMaxWidth().border(1.dp, gold.copy(alpha = 0.6f), RoundedCornerShape(16.dp)).padding(14.dp)) {
@@ -415,22 +476,55 @@ private fun VerseList(surah: MushafSurah, gold: Color, onTap: () -> Unit) {
                 Text(surah.benefitNote, style = DuaType.caption, color = c.inkMuted)
             }
         }
-        items(dua.lines.size) { i ->
-            val line = dua.lines[i]
-            Column(Modifier.fillMaxWidth()) {
+        if (bismillah != null) {
+            item {
                 Text(
-                    line.arabic,
+                    bismillah.arabic,
                     style = DuaType.arabic(30),
                     color = c.ink,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
                 )
-                Spacer(Modifier.height(8.dp))
-                Text(line.translation, style = DuaType.caption, color = c.inkMuted)
-                Spacer(Modifier.height(14.dp))
-                Box(Modifier.fillMaxWidth().height(1.dp).background(gold.copy(alpha = 0.25f)))
             }
         }
+        if (!showEnglish) {
+            item {
+                val text = buildAnnotatedString {
+                    verses.forEach { (n, ar, _) ->
+                        append(ar)
+                        append(" ")
+                        withStyle(SpanStyle(color = gold)) { append("\u06DD" + arabicDigits(n)) }
+                        append(" ")
+                    }
+                }
+                Text(
+                    text,
+                    style = DuaType.arabic(29).copy(textAlign = TextAlign.Justify, lineHeight = 58.sp),
+                    color = c.ink,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        } else {
+            items(verses.size) { i ->
+                val (n, ar, en) = verses[i]
+                Column(Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+                    Text(
+                        buildAnnotatedString {
+                            append(ar); append(" ")
+                            withStyle(SpanStyle(color = gold)) { append("\u06DD" + arabicDigits(n)) }
+                        },
+                        style = DuaType.arabic(29).copy(textAlign = TextAlign.Justify, lineHeight = 56.sp),
+                        color = c.ink,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(en, style = DuaType.caption, color = c.inkMuted)
+                    Spacer(Modifier.height(10.dp))
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(gold.copy(alpha = 0.25f)))
+                }
+            }
+        }
+        item { Spacer(Modifier.height(24.dp)) }
     }
 }
 
