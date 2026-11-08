@@ -429,7 +429,6 @@ fun MushafReader(
                             text = if (playingThis) "Pause" else "Listen",
                             filled = true,
                             icon = if (playingThis) AppIcons.Pause else Icons.Rounded.PlayArrow,
-                            modifier = Modifier.weight(1f),
                         ) { ask(); if (ps.mediaId == dua.id) PlayerHub.toggle() else PlayerHub.playDua(dua) }
                     }
                 }
@@ -468,12 +467,32 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, on
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
-            Column(Modifier.fillMaxWidth().border(1.dp, gold.copy(alpha = 0.6f), RoundedCornerShape(16.dp)).padding(14.dp)) {
-                Text("Read: ${surah.whenToRead}", style = DuaType.caption.copy(fontWeight = FontWeight.Bold), color = gold)
-                Spacer(Modifier.height(6.dp))
-                surah.benefits.forEach { Text("•  $it", style = DuaType.caption, color = c.ink) }
-                Spacer(Modifier.height(6.dp))
-                Text(surah.benefitNote, style = DuaType.caption, color = c.inkMuted)
+            var open by remember { mutableStateOf(false) }
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, gold.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(16.dp))
+                    .bounceClick(role = Role.Button, onClickLabel = "Show benefits") { open = !open }
+                    .padding(14.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Read: ${surah.whenToRead}",
+                        style = DuaType.caption.copy(fontWeight = FontWeight.Bold),
+                        color = gold,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(if (open) "Hide benefits" else "Benefits", style = DuaType.caption.copy(fontWeight = FontWeight.Bold), color = c.brand)
+                }
+                AnimatedVisibility(open, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+                    Column {
+                        Spacer(Modifier.height(8.dp))
+                        surah.benefits.forEach { Text("•  $it", style = DuaType.caption, color = c.ink) }
+                        Spacer(Modifier.height(6.dp))
+                        Text(surah.benefitNote, style = DuaType.caption, color = c.inkMuted)
+                    }
+                }
             }
         }
         if (bismillah != null) {
