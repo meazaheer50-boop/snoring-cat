@@ -22,6 +22,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -35,12 +36,14 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -62,12 +65,19 @@ import com.dailydua.tracker.ui.theme.DuaType
 import com.dailydua.tracker.ui.theme.Tokens
 
 @Composable
-fun DuaApp(vm: DuaViewModel = viewModel()) {
+fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunchHandled: () -> Unit = {}) {
     val ui by vm.state.collectAsStateWithLifecycle()
     DuaTheme(ui.settings.theme) {
         GlassBackground {
             var tab by rememberSaveable { mutableStateOf(0) }
             var openId by rememberSaveable { mutableStateOf<String?>(null) }
+            LaunchedEffect(Unit) { vm.rescheduleReminders() }
+            LaunchedEffect(launchDuaId) {
+                if (launchDuaId != null) {
+                    openId = launchDuaId
+                    onLaunchHandled()
+                }
+            }
 
             val openDua = SampleDuas.all.firstOrNull { it.id == openId }
             val readerDua = openDua?.takeIf { it.lines.isNotEmpty() }
@@ -105,7 +115,12 @@ fun DuaApp(vm: DuaViewModel = viewModel()) {
                     alpha = bgAlpha
                 },
                 containerColor = Color.Transparent,
-                bottomBar = { BottomBar(selected = tab, visible = !readerOpen, onSelect = { tab = it }) },
+                bottomBar = {
+                    Column {
+                        if (!readerOpen) MiniPlayer(onOpen = { openId = it.id })
+                        BottomBar(selected = tab, visible = !readerOpen, onSelect = { tab = it })
+                    }
+                },
             ) { padding ->
                 Box(Modifier.fillMaxSize().padding(padding)) {
                     AnimatedContent(
@@ -133,7 +148,8 @@ fun DuaApp(vm: DuaViewModel = viewModel()) {
                     ) { targetTab ->
                         when (targetTab) {
                             0 -> TodayScreen(ui, onOpen = { openId = it.id })
-                            else -> SettingsScreen(ui.settings, vm)
+                            1 -> PlaylistScreen(ui, vm, onOpen = { openId = it.id })
+                            else -> SettingsScreen(ui, vm)
                         }
                     }
                 }
@@ -194,7 +210,7 @@ private data class TabItem(val label: String, val icon: ImageVector)
 @Composable
 private fun BottomBar(selected: Int, visible: Boolean, onSelect: (Int) -> Unit) {
     val c = Tokens.colors
-    val items = listOf(TabItem("Today", Icons.Rounded.Home), TabItem("Settings", Icons.Rounded.Settings))
+    val items = listOf(TabItem("Today", Icons.Rounded.Home), TabItem("Playlist", Icons.AutoMirrored.Rounded.List), TabItem("Settings", Icons.Rounded.Settings))
     val barOffsetY by animateFloatAsState(
         targetValue = if (visible) 0f else 140f,
         animationSpec = spring(
@@ -278,7 +294,7 @@ private fun BottomBar(selected: Int, visible: Boolean, onSelect: (Int) -> Unit) 
                         )
                         .border(1.dp, c.glassBrandBorder.copy(alpha = pillAlpha), CircleShape)
                         .selectable(selected = on, role = Role.Tab, onClick = { onSelect(i) })
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                        .padding(horizontal = 8.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

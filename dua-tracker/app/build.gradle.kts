@@ -12,8 +12,8 @@ android {
         applicationId = "com.dailydua.tracker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
     }
 
     buildTypes {
@@ -40,5 +40,8 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.media3:media3-exoplayer:1.4.1")
+    implementation("androidx.media3:media3-session:1.4.1")
+    implementation("com.google.guava:guava:33.3.1-android")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

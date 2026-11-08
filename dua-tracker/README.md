@@ -26,3 +26,6 @@ Build > Generate App Bundles or APKs > Generate APKs (debug), or Generate Signed
 - The reader highlights the line being recited and scrolls with it. Tap a line to jump to it.
 - The recording is not stored in Git. Put `qunoot.mp3` in `app/src/main/assets/audio/` before building. Without it the dua still shows, with a note that audio is missing.
 - See REVIEW.md: the Arabic is transcribed from a video and needs checking.
+
+## Credits
+Quran text: Tanzil.net (Uthmani). English translation: Saheeh International. Hadith duas are written from memory and need checking. Recording text for the long duas comes from the videos' own captions.

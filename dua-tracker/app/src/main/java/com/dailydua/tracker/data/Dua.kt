@@ -18,6 +18,8 @@ data class Dua(
     /** File name under assets/audio, if a recording is bundled. */
     val audioAsset: String? = null,
     val source: String? = null,
+    /** Heading used to group longer or topical duas on the Today screen. */
+    val category: String? = null,
 )
 
 /** Sample content only. Review and replace with verified duas before release. */
@@ -58,12 +60,21 @@ object SampleDuas {
             lines = QunootData.lines,
             audioAsset = "qunoot.mp3",
             source = "Text transcribed from a video of the dua. Not yet verified.",
+            category = "Recitations",
         ),
         Dua(
             id = "khatm", title = "Dua Khatm al-Quran", tag = "Sheikh Mishary Al-Afasy · 17 min", time = TimeOfDay.ANYTIME,
             lines = KhatmData.lines,
             audioAsset = "khatm.mp3",
-            source = "Text from YouTube's automatic captions, without vowel marks and without translation. Not yet verified.",
+            category = "Recitations",
+            source = "Text from YouTube's automatic captions, without vowel marks; the English is an unverified draft translation. Not yet verified.",
         ),
-    )
+        Dua(
+            id = "mulk", title = "Surah Al-Mulk", tag = "Quran 67 \u00b7 9 min", time = TimeOfDay.ANYTIME,
+            lines = MulkData.lines,
+            audioAsset = "mulk.mp3",
+            category = "Recitations",
+            source = "Arabic: Tanzil (Uthmani). English: Saheeh International. Verse start times were matched to the recording.",
+        ),
+    ) + MoreDuas.all
 }

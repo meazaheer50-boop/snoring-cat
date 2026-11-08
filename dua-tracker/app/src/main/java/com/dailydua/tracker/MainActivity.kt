@@ -1,15 +1,43 @@
 package com.dailydua.tracker
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.core.content.ContextCompat
+import com.dailydua.tracker.playback.PlayerHub
 import com.dailydua.tracker.ui.DuaApp
 
 class MainActivity : ComponentActivity() {
+    private var launchDuaId by mutableStateOf<String?>(null)
+    private val askNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { DuaApp() }
+        PlayerHub.init(this)
+        launchDuaId = intent?.getStringExtra(EXTRA_DUA_ID)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        setContent { DuaApp(launchDuaId = launchDuaId, onLaunchHandled = { launchDuaId = null }) }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        launchDuaId = intent.getStringExtra(EXTRA_DUA_ID)
+    }
+
+    companion object { const val EXTRA_DUA_ID = "duaId" }
 }

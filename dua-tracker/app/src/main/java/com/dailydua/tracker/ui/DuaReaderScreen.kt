@@ -71,7 +71,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dailydua.tracker.playback.PlayerHub
 import com.dailydua.tracker.data.Dua
 import com.dailydua.tracker.data.Settings
 import com.dailydua.tracker.ui.theme.DuaType
@@ -89,21 +90,13 @@ fun DuaReaderScreen(
 ) {
     val c = Tokens.colors
     val context = LocalContext.current
-    val player = remember(dua.id) { AudioPlayer(context, dua.audioAsset) }
-    DisposableEffect(player) { onDispose { player.release() } }
-    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { player.pause() }
+    val ps by PlayerHub.state.collectAsStateWithLifecycle()
+    val available = remember(dua.id) { PlayerHub.hasAudio(context, dua) }
+    val isThis = ps.mediaId == dua.id
+    val positionMs = if (isThis) ps.positionMs.toInt() else 0
+    val playing = isThis && ps.isPlaying
+    val started = isThis
     BackHandler(onBack = onClose)
-
-    var positionMs by remember { mutableIntStateOf(0) }
-    var playing by remember { mutableStateOf(false) }
-    var started by remember { mutableStateOf(false) }
-    LaunchedEffect(player) {
-        while (true) {
-            positionMs = player.positionMs
-            playing = player.isPlaying
-            delay(150)
-        }
-    }
 
     val current = if (!started) -1 else dua.lines.indexOfLast { it.startMs <= positionMs }
     val listState = rememberLazyListState()
@@ -215,7 +208,7 @@ fun DuaReaderScreen(
                             style = DuaType.caption.copy(fontWeight = FontWeight.Bold),
                             color = c.goldInk,
                         )
-                        if (!player.available) {
+                        if (!available) {
                             Text("Audio is not included in this build.", style = DuaType.caption, color = c.inkMuted)
                         }
                         dua.source?.let { Text(it, style = DuaType.caption, color = c.inkMuted) }
@@ -255,12 +248,8 @@ fun DuaReaderScreen(
                             )
                             .bounceClick(
                                 pressedScale = 0.98f,
-                                enabled = player.available,
-                            ) {
-                                started = true
-                                player.seekTo(line.startMs.toInt())
-                                player.play()
-                            }
+                                enabled = available,
+                            ) { PlayerHub.playFrom(dua, line.startMs) }
                             .animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))
                             .padding(18.dp),
                     ) {
@@ -318,8 +307,8 @@ fun DuaReaderScreen(
                 item(key = "bottom_spacer") { Spacer(Modifier.height(16.dp)) }
             }
 
-            if (player.available) {
-                val duration = player.durationMs.coerceAtLeast(1)
+            if (available) {
+                val duration = (if (isThis) ps.durationMs.toInt() else 0).coerceAtLeast(1)
                 Column(
                     Modifier
                         .fillMaxWidth()
@@ -333,7 +322,7 @@ fun DuaReaderScreen(
                 ) {
                     Slider(
                         value = positionMs.toFloat().coerceIn(0f, duration.toFloat()),
-                        onValueChange = { started = true; positionMs = it.toInt(); player.seekTo(it.toInt()) },
+                        onValueChange = { PlayerHub.playFrom(dua, it.toLong()) },
                         valueRange = 0f..duration.toFloat(),
                         colors = SliderDefaults.colors(
                             thumbColor = c.brand,
@@ -345,9 +334,7 @@ fun DuaReaderScreen(
                         Text(clock(positionMs), style = DuaType.caption, color = c.inkMuted, modifier = Modifier.width(56.dp))
                         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                             PlayButton(playing) {
-                                started = true
-                                if (playing) player.pause() else player.play()
-                                playing = player.isPlaying
+                                if (isThis) PlayerHub.toggle() else PlayerHub.playDua(dua)
                             }
                         }
                         Text(clock(duration), style = DuaType.caption, color = c.inkMuted, modifier = Modifier.width(56.dp))

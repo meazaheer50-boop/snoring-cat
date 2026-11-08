@@ -1,0 +1,40 @@
+package com.dailydua.tracker.data
+
+/** Surah Al-Mulk (67). Arabic: Tanzil Uthmani text. English: Saheeh International. Verse start times were matched to the recitation. */
+object MulkData {
+    val lines = listOf(
+        DuaLine(400L, "أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ", "I seek refuge in Allah from the accursed Satan."),
+        DuaLine(7300L, "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ", "In the name of Allah, the Entirely Merciful, the Especially Merciful."),
+        DuaLine(13200L, "تَبَٰرَكَ ٱلَّذِي بِيَدِهِ ٱلۡمُلۡكُ وَهُوَ عَلَىٰ كُلِّ شَيۡءٖ قَدِيرٌ", "1. Blessed is He in whose hand is dominion, and He is over all things competent"),
+        DuaLine(24599L, "ٱلَّذِي خَلَقَ ٱلۡمَوۡتَ وَٱلۡحَيَوٰةَ لِيَبۡلُوَكُمۡ أَيُّكُمۡ أَحۡسَنُ عَمَلٗاۚ وَهُوَ ٱلۡعَزِيزُ ٱلۡغَفُورُ", "2. [He] who created death and life to test you [as to] which of you is best in deed - and He is the Exalted in Might, the Forgiving"),
+        DuaLine(46200L, "ٱلَّذِي خَلَقَ سَبۡعَ سَمَٰوَٰتٖ طِبَاقٗاۖ مَّا تَرَىٰ فِي خَلۡقِ ٱلرَّحۡمَٰنِ مِن تَفَٰوُتٖۖ فَٱرۡجِعِ ٱلۡبَصَرَ هَلۡ تَرَىٰ مِن فُطُورٖ", "3. [And] who created seven heavens in layers. You do not see in the creation of the Most Merciful any inconsistency. So return [your] vision [to the sky]; do you see any breaks"),
+        DuaLine(52900L, "ثُمَّ ٱرۡجِعِ ٱلۡبَصَرَ كَرَّتَيۡنِ يَنقَلِبۡ إِلَيۡكَ ٱلۡبَصَرُ خَاسِئٗا وَهُوَ حَسِيرٞ", "4. Then return [your] vision twice again. [Your] vision will return to you humbled while it is fatigued"),
+        DuaLine(72500L, "وَلَقَدۡ زَيَّنَّا ٱلسَّمَآءَ ٱلدُّنۡيَا بِمَصَٰبِيحَ وَجَعَلۡنَٰهَا رُجُومٗا لِّلشَّيَٰطِينِۖ وَأَعۡتَدۡنَا لَهُمۡ عَذَابَ ٱلسَّعِيرِ", "5. And We have certainly beautified the nearest heaven with stars and have made [from] them what is thrown at the devils and have prepared for them the punishment of the Blaze"),
+        DuaLine(97100L, "وَلِلَّذِينَ كَفَرُواْ بِرَبِّهِمۡ عَذَابُ جَهَنَّمَۖ وَبِئۡسَ ٱلۡمَصِيرُ", "6. And for those who disbelieved in their Lord is the punishment of Hell, and wretched is the destination"),
+        DuaLine(108100L, "إِذَآ أُلۡقُواْ فِيهَا سَمِعُواْ لَهَا شَهِيقٗا وَهِيَ تَفُورُ", "7. When they are thrown into it, they hear from it a [dreadful] inhaling while it boils up"),
+        DuaLine(118800L, "تَكَادُ تَمَيَّزُ مِنَ ٱلۡغَيۡظِۖ كُلَّمَآ أُلۡقِيَ فِيهَا فَوۡجٞ سَأَلَهُمۡ خَزَنَتُهَآ أَلَمۡ يَأۡتِكُمۡ نَذِيرٞ", "8. It almost bursts with rage. Every time a company is thrown into it, its keepers ask them, \"Did there not come to you a warner"),
+        DuaLine(142299L, "قَالُواْ بَلَىٰ قَدۡ جَآءَنَا نَذِيرٞ فَكَذَّبۡنَا وَقُلۡنَا مَا نَزَّلَ ٱللَّهُ مِن شَيۡءٍ إِنۡ أَنتُمۡ إِلَّا فِي ضَلَٰلٖ كَبِيرٖ", "9. They will say,\" Yes, a warner had come to us, but we denied and said, 'Allah has not sent down anything. You are not but in great error"),
+        DuaLine(165100L, "وَقَالُواْ لَوۡ كُنَّا نَسۡمَعُ أَوۡ نَعۡقِلُ مَا كُنَّا فِيٓ أَصۡحَٰبِ ٱلسَّعِيرِ", "10. And they will say, \"If only we had been listening or reasoning, we would not be among the companions of the Blaze"),
+        DuaLine(178700L, "فَٱعۡتَرَفُواْ بِذَنۢبِهِمۡ فَسُحۡقٗا لِّأَصۡحَٰبِ ٱلسَّعِيرِ", "11. And they will admit their sin, so [it is] alienation for the companions of the Blaze"),
+        DuaLine(187899L, "إِنَّ ٱلَّذِينَ يَخۡشَوۡنَ رَبَّهُم بِٱلۡغَيۡبِ لَهُم مَّغۡفِرَةٞ وَأَجۡرٞ كَبِيرٞ", "12. Indeed, those who fear their Lord unseen will have forgiveness and great reward"),
+        DuaLine(202000L, "وَأَسِرُّواْ قَوۡلَكُمۡ أَوِ ٱجۡهَرُواْ بِهِۦٓۖ إِنَّهُۥ عَلِيمُۢ بِذَاتِ ٱلصُّدُورِ", "13. And conceal your speech or publicize it; indeed, He is Knowing of that within the breasts"),
+        DuaLine(214700L, "أَلَا يَعۡلَمُ مَنۡ خَلَقَ وَهُوَ ٱللَّطِيفُ ٱلۡخَبِيرُ", "14. Does He who created not know, while He is the Subtle, the Acquainted"),
+        DuaLine(222100L, "هُوَ ٱلَّذِي جَعَلَ لَكُمُ ٱلۡأَرۡضَ ذَلُولٗا فَٱمۡشُواْ فِي مَنَاكِبِهَا وَكُلُواْ مِن رِّزۡقِهِۦۖ وَإِلَيۡهِ ٱلنُّشُورُ", "15. It is He who made the earth tame for you - so walk among its slopes and eat of His provision - and to Him is the resurrection"),
+        DuaLine(242399L, "ءَأَمِنتُم مَّن فِي ٱلسَّمَآءِ أَن يَخۡسِفَ بِكُمُ ٱلۡأَرۡضَ فَإِذَا هِيَ تَمُورُ", "16. Do you feel secure that He who [holds authority] in the heaven would not cause the earth to swallow you and suddenly it would sway"),
+        DuaLine(255200L, "أَمۡ أَمِنتُم مَّن فِي ٱلسَّمَآءِ أَن يُرۡسِلَ عَلَيۡكُمۡ حَاصِبٗاۖ فَسَتَعۡلَمُونَ كَيۡفَ نَذِيرِ", "17. Or do you feel secure that He who [holds authority] in the heaven would not send against you a storm of stones? Then you would know how [severe] was My warning"),
+        DuaLine(271200L, "وَلَقَدۡ كَذَّبَ ٱلَّذِينَ مِن قَبۡلِهِمۡ فَكَيۡفَ كَانَ نَكِيرِ", "18. And already had those before them denied, and how [terrible] was My reproach"),
+        DuaLine(280400L, "أَوَلَمۡ يَرَوۡاْ إِلَى ٱلطَّيۡرِ فَوۡقَهُمۡ صَـٰٓفَّـٰتٖ وَيَقۡبِضۡنَۚ مَا يُمۡسِكُهُنَّ إِلَّا ٱلرَّحۡمَٰنُۚ إِنَّهُۥ بِكُلِّ شَيۡءِۭ بَصِيرٌ", "19. Do they not see the birds above them with wings outspread and [sometimes] folded in? None holds them [aloft] except the Most Merciful. Indeed He is, of all things, Seeing"),
+        DuaLine(305099L, "أَمَّنۡ هَٰذَا ٱلَّذِي هُوَ جُندٞ لَّكُمۡ يَنصُرُكُم مِّن دُونِ ٱلرَّحۡمَٰنِۚ إِنِ ٱلۡكَٰفِرُونَ إِلَّا فِي غُرُورٍ", "20. Or who is it that could be an army for you to aid you other than the Most Merciful? The disbelievers are not but in delusion"),
+        DuaLine(323000L, "أَمَّنۡ هَٰذَا ٱلَّذِي يَرۡزُقُكُمۡ إِنۡ أَمۡسَكَ رِزۡقَهُۥۚ بَل لَّجُّواْ فِي عُتُوّٖ وَنُفُورٍ", "21. Or who is it that could provide for you if He withheld His provision? But they have persisted in insolence and aversion"),
+        DuaLine(337000L, "أَفَمَن يَمۡشِي مُكِبًّا عَلَىٰ وَجۡهِهِۦٓ أَهۡدَىٰٓ أَمَّن يَمۡشِي سَوِيًّا عَلَىٰ صِرَٰطٖ مُّسۡتَقِيمٖ", "22. Then is one who walks fallen on his face better guided or one who walks erect on a straight path"),
+        DuaLine(358700L, "قُلۡ هُوَ ٱلَّذِيٓ أَنشَأَكُمۡ وَجَعَلَ لَكُمُ ٱلسَّمۡعَ وَٱلۡأَبۡصَٰرَ وَٱلۡأَفۡـِٔدَةَۚ قَلِيلٗا مَّا تَشۡكُرُونَ", "23. Say, \"It is He who has produced you and made for you hearing and vision and hearts; little are you grateful"),
+        DuaLine(381099L, "قُلۡ هُوَ ٱلَّذِي ذَرَأَكُمۡ فِي ٱلۡأَرۡضِ وَإِلَيۡهِ تُحۡشَرُونَ", "24. Say, \"It is He who has multiplied you throughout the earth, and to Him you will be gathered"),
+        DuaLine(389000L, "وَيَقُولُونَ مَتَىٰ هَٰذَا ٱلۡوَعۡدُ إِن كُنتُمۡ صَٰدِقِينَ", "25. And they say, \"When is this promise, if you should be truthful"),
+        DuaLine(398000L, "قُلۡ إِنَّمَا ٱلۡعِلۡمُ عِندَ ٱللَّهِ وَإِنَّمَآ أَنَا۠ نَذِيرٞ مُّبِينٞ", "26. Say, \"The knowledge is only with Allah, and I am only a clear warner"),
+        DuaLine(419200L, "فَلَمَّا رَأَوۡهُ زُلۡفَةٗ سِيٓـَٔتۡ وُجُوهُ ٱلَّذِينَ كَفَرُواْ وَقِيلَ هَٰذَا ٱلَّذِي كُنتُم بِهِۦ تَدَّعُونَ", "27. But when they see it approaching, the faces of those who disbelieve will be distressed, and it will be said, \"This is that for which you used to call"),
+        DuaLine(443700L, "قُلۡ أَرَءَيۡتُمۡ إِنۡ أَهۡلَكَنِيَ ٱللَّهُ وَمَن مَّعِيَ أَوۡ رَحِمَنَا فَمَن يُجِيرُ ٱلۡكَٰفِرِينَ مِنۡ عَذَابٍ أَلِيمٖ", "28. Say, [O Muhammad], \"Have you considered: whether Allah should cause my death and those with me or have mercy upon us, who can protect the disbelievers from a painful punishment"),
+        DuaLine(464599L, "قُلۡ هُوَ ٱلرَّحۡمَٰنُ ءَامَنَّا بِهِۦ وَعَلَيۡهِ تَوَكَّلۡنَاۖ فَسَتَعۡلَمُونَ مَنۡ هُوَ فِي ضَلَٰلٖ مُّبِينٖ", "29. Say, \"He is the Most Merciful; we have believed in Him, and upon Him we have relied. And you will [come to] know who it is that is in clear error"),
+        DuaLine(483500L, "قُلۡ أَرَءَيۡتُمۡ إِنۡ أَصۡبَحَ مَآؤُكُمۡ غَوۡرٗا فَمَن يَأۡتِيكُم بِمَآءٖ مَّعِينِۭ", "30. Say, \"Have you considered: if your water was to become sunken [into the earth], then who could bring you flowing water"),
+        DuaLine(506619L, "صَدَقَ اللَّهُ الْعَظِيمُ", "Allah, the Almighty, has spoken the truth."),
+    )
+}

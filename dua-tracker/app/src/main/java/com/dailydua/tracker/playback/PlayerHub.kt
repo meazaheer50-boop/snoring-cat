@@ -1,0 +1,133 @@
+package com.dailydua.tracker.playback
+
+import android.content.ComponentName
+import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import androidx.core.content.ContextCompat
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import com.dailydua.tracker.data.Dua
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+/** The app's remote control for [PlaybackService]. Everything runs on the main thread. */
+object PlayerHub {
+    data class PState(
+        val mediaId: String? = null,
+        val isPlaying: Boolean = false,
+        val positionMs: Long = 0,
+        val durationMs: Long = 0,
+        val queueIds: List<String> = emptyList(),
+        val index: Int = 0,
+        val repeatAll: Boolean = false,
+        val hasNext: Boolean = false,
+        val hasPrevious: Boolean = false,
+    )
+
+    private val _state = MutableStateFlow(PState())
+    val state: StateFlow<PState> = _state.asStateFlow()
+
+    private var controller: MediaController? = null
+    private var started = false
+    private val pending = mutableListOf<(MediaController) -> Unit>()
+    private val handler = Handler(Looper.getMainLooper())
+    private val ticker = object : Runnable {
+        override fun run() {
+            refresh()
+            handler.postDelayed(this, 250)
+        }
+    }
+
+    fun init(context: Context) {
+        if (started) return
+        started = true
+        val app = context.applicationContext
+        val token = SessionToken(app, ComponentName(app, PlaybackService::class.java))
+        val future = MediaController.Builder(app, token).buildAsync()
+        future.addListener({
+            val c = runCatching { future.get() }.getOrNull() ?: run { started = false; return@addListener }
+            controller = c
+            c.addListener(object : Player.Listener {
+                override fun onEvents(player: Player, events: Player.Events) = refresh()
+            })
+            pending.forEach { it(c) }
+            pending.clear()
+            refresh()
+            handler.post(ticker)
+        }, ContextCompat.getMainExecutor(app))
+    }
+
+    private fun refresh() {
+        val c = controller ?: return
+        _state.value = PState(
+            mediaId = c.currentMediaItem?.mediaId,
+            isPlaying = c.isPlaying,
+            positionMs = c.currentPosition.coerceAtLeast(0),
+            durationMs = c.duration.takeIf { it > 0 } ?: 0,
+            queueIds = (0 until c.mediaItemCount).map { c.getMediaItemAt(it).mediaId },
+            index = c.currentMediaItemIndex,
+            repeatAll = c.repeatMode == Player.REPEAT_MODE_ALL,
+            hasNext = c.hasNextMediaItem(),
+            hasPrevious = c.hasPreviousMediaItem(),
+        )
+    }
+
+    private fun withController(block: (MediaController) -> Unit) {
+        val c = controller
+        if (c != null) block(c) else pending.add(block)
+    }
+
+    fun hasAudio(context: Context, dua: Dua): Boolean {
+        val asset = dua.audioAsset ?: return false
+        return runCatching { context.assets.list("audio")?.contains(asset) == true }.getOrDefault(false)
+    }
+
+    private fun item(dua: Dua): MediaItem = MediaItem.Builder()
+        .setMediaId(dua.id)
+        .setUri("asset:///audio/${dua.audioAsset}")
+        .setMediaMetadata(
+            MediaMetadata.Builder()
+                .setTitle(dua.title)
+                .setArtist(dua.tag)
+                .build(),
+        )
+        .build()
+
+    /** Plays [duas] one after another, starting at [startIndex]. */
+    fun playQueue(duas: List<Dua>, startIndex: Int = 0, startMs: Long = 0) {
+        if (duas.isEmpty()) return
+        withController { c ->
+            c.setMediaItems(duas.map(::item), startIndex.coerceIn(0, duas.lastIndex), startMs)
+            c.prepare()
+            c.play()
+        }
+    }
+
+    fun playDua(dua: Dua, startMs: Long = 0) = playQueue(listOf(dua), 0, startMs)
+
+    /** Seek inside [dua] if it is the current track, otherwise start it at [positionMs]. */
+    fun playFrom(dua: Dua, positionMs: Long) {
+        if (_state.value.mediaId == dua.id) {
+            withController { it.seekTo(positionMs); it.play() }
+        } else {
+            playDua(dua, positionMs)
+        }
+    }
+
+    fun toggle() = withController { c ->
+        if (c.isPlaying) c.pause() else {
+            if (c.playbackState == Player.STATE_ENDED) c.seekTo(0)
+            c.play()
+        }
+    }
+
+    fun next() = withController { it.seekToNextMediaItem() }
+    fun previous() = withController { it.seekToPreviousMediaItem() }
+    fun seekTo(ms: Long) = withController { it.seekTo(ms) }
+    fun setRepeatAll(on: Boolean) = withController { it.repeatMode = if (on) Player.REPEAT_MODE_ALL else Player.REPEAT_MODE_OFF }
+}

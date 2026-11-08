@@ -55,11 +55,13 @@ import com.dailydua.tracker.ui.theme.Tokens
 
 @Composable
 fun TodayScreen(ui: UiState, onOpen: (Dua) -> Unit) {
-    val duas = SampleDuas.all
-    val doneCount = duas.count { it.id in ui.doneToday }
-    val morning = duas.filter { it.time == TimeOfDay.MORNING }
-    val evening = duas.filter { it.time == TimeOfDay.EVENING }
-    val anytime = duas.filter { it.time == TimeOfDay.ANYTIME }
+    val all = SampleDuas.all
+    // Progress counts the daily morning and evening duas. The rest is a library to browse.
+    val daily = all.filter { it.time != TimeOfDay.ANYTIME }
+    val doneCount = daily.count { it.id in ui.doneToday }
+    val morning = all.filter { it.time == TimeOfDay.MORNING }
+    val evening = all.filter { it.time == TimeOfDay.EVENING }
+    val groups = all.filter { it.category != null }.groupBy { it.category!! }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -67,56 +69,35 @@ fun TodayScreen(ui: UiState, onOpen: (Dua) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item(key = "header") {
-            StaggeredEntrance(index = 0) {
-                Header(ui.streak)
-            }
+            StaggeredEntrance(index = 0) { Header(ui.streak) }
         }
         item(key = "hero") {
-            StaggeredEntrance(index = 1) {
-                Hero(doneCount, duas.size)
-            }
+            StaggeredEntrance(index = 1) { Hero(doneCount, daily.size) }
         }
-        item(key = "morning_label") {
-            StaggeredEntrance(index = 2) {
-                SectionLabel(
-                    text = "Morning",
-                    modifier = Modifier.padding(top = 12.dp),
-                    badge = "${morning.count { it.id in ui.doneToday }}/${morning.size}",
-                )
-            }
+        daySection("Morning", morning, ui, onOpen)
+        daySection("Evening", evening, ui, onOpen)
+        groups.forEach { (title, list) -> daySection(title, list, ui, onOpen) }
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.daySection(
+    title: String,
+    list: List<Dua>,
+    ui: UiState,
+    onOpen: (Dua) -> Unit,
+) {
+    item(key = "section-$title") {
+        StaggeredEntrance(index = 2) {
+            SectionLabel(
+                text = title,
+                modifier = Modifier.padding(top = 12.dp),
+                badge = "${list.count { it.id in ui.doneToday }}/${list.size}",
+            )
         }
-        itemsIndexed(morning, key = { _, d -> d.id }) { idx, d ->
-            StaggeredEntrance(index = 3 + idx) {
-                DuaRow(d, d.id in ui.doneToday) { onOpen(d) }
-            }
-        }
-        item(key = "evening_label") {
-            StaggeredEntrance(index = 3 + morning.size) {
-                SectionLabel(
-                    text = "Evening",
-                    modifier = Modifier.padding(top = 12.dp),
-                    badge = "${evening.count { it.id in ui.doneToday }}/${evening.size}",
-                )
-            }
-        }
-        itemsIndexed(evening, key = { _, d -> d.id }) { idx, d ->
-            StaggeredEntrance(index = 4 + morning.size + idx) {
-                DuaRow(d, d.id in ui.doneToday) { onOpen(d) }
-            }
-        }
-        item(key = "anytime_label") {
-            StaggeredEntrance(index = 4 + morning.size + evening.size) {
-                SectionLabel(
-                    text = "Longer duas",
-                    modifier = Modifier.padding(top = 12.dp),
-                    badge = "${anytime.count { it.id in ui.doneToday }}/${anytime.size}",
-                )
-            }
-        }
-        itemsIndexed(anytime, key = { _, d -> d.id }) { idx, d ->
-            StaggeredEntrance(index = 5 + morning.size + evening.size + idx) {
-                DuaRow(d, d.id in ui.doneToday) { onOpen(d) }
-            }
+    }
+    itemsIndexed(list, key = { _, d -> "$title-${d.id}" }) { idx, d ->
+        StaggeredEntrance(index = 3 + minOf(idx, 5)) {
+            DuaRow(d, d.id in ui.doneToday) { onOpen(d) }
         }
     }
 }

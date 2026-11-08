@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.dailydua.tracker.data.DuaRepository
+import com.dailydua.tracker.data.Reminder
 import com.dailydua.tracker.data.Settings
 import com.dailydua.tracker.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,17 +18,21 @@ data class UiState(
     val settings: Settings = Settings(),
     val doneToday: Set<String> = emptySet(),
     val streak: Int = 0,
+    val reminders: List<Reminder> = emptyList(),
+    val playlist: List<String> = emptyList(),
 )
 
 class DuaViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = DuaRepository(app)
 
-    val state: StateFlow<UiState> = combine(repo.settings, repo.doneEntries) { settings, entries ->
+    val state: StateFlow<UiState> = combine(repo.settings, repo.doneEntries, repo.reminders, repo.playlist) { settings, entries, reminders, playlist ->
         val today = LocalDate.now()
         UiState(
             settings = settings,
             doneToday = entries.filter { it.startsWith("$today|") }.map { it.substringAfter('|') }.toSet(),
             streak = streak(entries, today),
+            reminders = reminders,
+            playlist = playlist,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, UiState())
 
@@ -50,4 +55,9 @@ class DuaViewModel(app: Application) : AndroidViewModel(app) {
     fun setArabicSize(size: Int) = viewModelScope.launch { repo.setArabicSize(size) }
     fun setShowTransliteration(on: Boolean) = viewModelScope.launch { repo.setShowTransliteration(on) }
     fun setShowTranslation(on: Boolean) = viewModelScope.launch { repo.setShowTranslation(on) }
+
+    fun saveReminder(r: Reminder) = viewModelScope.launch { repo.saveReminder(r) }
+    fun deleteReminder(r: Reminder) = viewModelScope.launch { repo.deleteReminder(r) }
+    fun setPlaylist(ids: List<String>) = viewModelScope.launch { repo.setPlaylist(ids) }
+    fun rescheduleReminders() = viewModelScope.launch { repo.rescheduleAll() }
 }
