@@ -153,7 +153,7 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
                     ) { targetTab ->
                         when (targetTab) {
                             0 -> TodayScreen(ui, onOpen = { openId = it.id })
-                            1 -> QuranScreen(ui, onRead = { readingId = it.id })
+                            1 -> QuranScreen(ui, onRead = { readingId = it.id }, onOpenDua = { openId = it })
                             2 -> PlaylistScreen(ui, vm, onOpen = { openId = it.id })
                             else -> SettingsScreen(ui, vm)
                         }

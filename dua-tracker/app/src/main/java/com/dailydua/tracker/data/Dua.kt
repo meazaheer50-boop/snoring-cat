@@ -90,6 +90,13 @@ object SampleDuas {
             source = "Arabic: Tanzil (Uthmani). English: Saheeh International. Verse start times were matched to the recording.",
         ),
         Dua(
+            id = "names99", title = "The 99 Names of Allah", tag = "Arabic and English · 99 names", time = TimeOfDay.ANYTIME,
+            lines = NamesData.lines,
+            audioAsset = "names99.m4a",
+            category = "Listen and follow along",
+            source = "Names and meanings follow the common list; some lists differ slightly in order and wording. Timing was matched to the recording by its rhythm.",
+        ),
+        Dua(
             id = "janazah", title = "Janazah prayer guide", tag = "4 takbirs · what to recite", time = TimeOfDay.ANYTIME,
             lines = JanazahData.lines,
             category = "Janazah prayer",

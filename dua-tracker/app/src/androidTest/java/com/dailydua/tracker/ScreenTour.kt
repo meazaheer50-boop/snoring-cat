@@ -122,14 +122,23 @@ class ScreenTour {
         step("quran") {
             tab("Quran")
             shot("10_quran_tab")
+            rule.onAllNodesWithText("Benefits").onFirst().performClick()
+            shot("10b_quran_benefits", 1200)
+            rule.onAllNodesWithText("Benefits").onFirst().performClick()
             rule.onAllNodesWithText("Start reading").onFirst().performClick()
             shot("11_mushaf_page1", 2000)
             rule.onRoot().performTouchInput { swipeRight(startX = width * 0.3f, endX = width * 0.75f) }
             shot("12_mushaf_page2", 1500)
             rule.onRoot().performTouchInput { swipeRight(startX = width * 0.3f, endX = width * 0.75f) }
             shot("12b_mushaf_page3", 1500)
+            rule.onNodeWithTag("verseToggle").performClick()
+            shot("12c_verse_mode", 1500)
             back()
             shot("13_quran_continue")
+            scrollTo("The 99 Names of Allah")
+            rule.onNodeWithText("Read the names").performClick()
+            shot("13b_names_reader", 1500)
+            back()
         }
         step("playlist") {
             tab("Playlist")

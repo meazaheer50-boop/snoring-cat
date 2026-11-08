@@ -2,7 +2,19 @@ package com.dailydua.tracker.ui
 
 import android.graphics.BitmapFactory
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.border
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -45,6 +57,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -75,9 +88,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** The Quran tab: surahs to read from printed mushaf pages. */
+/** The Quran tab: surahs to read from printed mushaf pages, plus the 99 Names. */
 @Composable
-fun QuranScreen(ui: UiState, onRead: (MushafSurah) -> Unit) {
+fun QuranScreen(ui: UiState, onRead: (MushafSurah) -> Unit, onOpenDua: (String) -> Unit) {
     val c = Tokens.colors
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -91,7 +104,7 @@ fun QuranScreen(ui: UiState, onRead: (MushafSurah) -> Unit) {
                     Text("Quran", style = DuaType.displayMd, color = c.ink)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Read from the printed mushaf pages. Swipe to turn a page, pinch or double-tap to zoom.",
+                        "Read from the printed mushaf pages, or verse by verse with the English beside it.",
                         style = DuaType.caption,
                         color = c.inkMuted,
                     )
@@ -103,6 +116,50 @@ fun QuranScreen(ui: UiState, onRead: (MushafSurah) -> Unit) {
                 SurahCard(s, ui.lastPages[s.id] ?: 0, onRead)
             }
         }
+        item(key = "names") {
+            StaggeredEntrance(index = 1 + Mushaf.all.size) { NamesCard(onOpenDua) }
+        }
+    }
+}
+
+@Composable
+private fun NamesCard(onOpenDua: (String) -> Unit) {
+    val c = Tokens.colors
+    val ps by PlayerHub.state.collectAsStateWithLifecycle()
+    val dua = SampleDuas.all.first { it.id == "names99" }
+    val playing = ps.mediaId == dua.id && ps.isPlaying
+    val ask = LocalAskNotifications.current
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .glassSurface(shape = RoundedCornerShape(28.dp), variant = GlassVariant.FROST)
+            .shimmerSweep()
+            .bounceClick(pressedScale = 0.98f, role = Role.Button, onClickLabel = "Read the 99 Names") { onOpenDua(dua.id) }
+            .padding(20.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(44.dp)
+                    .glassSurface(shape = CircleShape, variant = GlassVariant.GOLD),
+                contentAlignment = Alignment.Center,
+            ) { Text("99", style = DuaType.caption.copy(fontWeight = FontWeight.Bold), color = c.goldInk) }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text("The 99 Names of Allah", style = DuaType.title, color = c.ink)
+                Text("Arabic and English · with recitation", style = DuaType.caption, color = c.inkMuted)
+            }
+            Text("أَسْمَاءُ اللَّهِ الْحُسْنَى", style = DuaType.arabic(20), color = c.brand)
+        }
+        Spacer(Modifier.height(16.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Pill(text = "Read the names", filled = true, modifier = Modifier.weight(1f)) { onOpenDua(dua.id) }
+            Pill(
+                text = if (playing) "Pause" else "Listen",
+                filled = false,
+                icon = if (playing) AppIcons.Pause else Icons.Rounded.PlayArrow,
+            ) { ask(); if (ps.mediaId == dua.id) PlayerHub.toggle() else PlayerHub.playDua(dua) }
+        }
     }
 }
 
@@ -113,15 +170,18 @@ private fun SurahCard(s: MushafSurah, lastPage: Int, onRead: (MushafSurah) -> Un
     val dua = SampleDuas.all.firstOrNull { it.id == s.audioDuaId }
     val playingThis = dua != null && ps.mediaId == dua.id && ps.isPlaying
     val ask = LocalAskNotifications.current
+    var showBenefits by remember { mutableStateOf(false) }
     Column(
         Modifier
             .fillMaxWidth()
             .glassSurface(shape = RoundedCornerShape(28.dp), variant = GlassVariant.FROST)
             .shimmerSweep()
-            .bounceClick(pressedScale = 0.98f, role = Role.Button, onClickLabel = "Read ${s.nameEn}") { onRead(s) }
             .padding(20.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.bounceClick(pressedScale = 0.98f, role = Role.Button, onClickLabel = "Read ${s.nameEn}") { onRead(s) },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Box(
                 Modifier
                     .size(44.dp)
@@ -135,7 +195,29 @@ private fun SurahCard(s: MushafSurah, lastPage: Int, onRead: (MushafSurah) -> Un
             }
             Text(s.nameAr, style = DuaType.arabic(26), color = c.brand)
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
+        Row(
+            Modifier
+                .clip(CircleShape)
+                .glassSurface(shape = CircleShape, variant = GlassVariant.GOLD)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+        ) { Text("Read: ${s.whenToRead}", style = DuaType.caption.copy(fontWeight = FontWeight.Bold), color = c.goldInk) }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            if (showBenefits) "Hide benefits" else "Benefits",
+            style = DuaType.caption.copy(fontWeight = FontWeight.Bold),
+            color = c.brand,
+            modifier = Modifier
+                .heightIn(min = 48.dp)
+                .bounceClick(role = Role.Button, onClickLabel = "Show benefits") { showBenefits = !showBenefits }
+                .padding(vertical = 14.dp),
+        )
+        AnimatedVisibility(showBenefits, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 12.dp)) {
+                s.benefits.forEach { Text("•  $it", style = DuaType.caption, color = c.ink) }
+                Text(s.benefitNote, style = DuaType.caption, color = c.inkMuted)
+            }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             Pill(
                 text = if (lastPage > 0) "Continue · page ${lastPage + 1} of ${s.pages}" else "Start reading",
@@ -185,7 +267,7 @@ fun Pill(
     }
 }
 
-/** Full-screen page reader. Pages turn right-to-left like a printed mushaf. */
+/** Full-screen reader in a calm paper style. Tap the page to hide or show the controls. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MushafReader(
@@ -199,87 +281,154 @@ fun MushafReader(
     val pager = rememberPagerState(initialPage = startPage.coerceIn(0, surah.pages - 1)) { surah.pages }
     val scope = rememberCoroutineScope()
     var zoomed by remember { mutableStateOf(false) }
+    var chrome by remember { mutableStateOf(true) }
+    var verseMode by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(pager) { snapshotFlow { pager.currentPage }.collect { onPageChange(it) } }
     val ps by PlayerHub.state.collectAsStateWithLifecycle()
     val dua = SampleDuas.all.firstOrNull { it.id == surah.audioDuaId }
     val playingThis = dua != null && ps.mediaId == dua.id && ps.isPlaying
     val ask = LocalAskNotifications.current
+    val paper = if (c.isDark) Color(0xFF0D1914) else Color(0xFFFAF4E6)
+    val gold = if (c.isDark) Color(0xFFD9B35A) else Color(0xFFB8860B)
 
-    GlassBackground {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(paper),
+    ) {
         Column(
             Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding(),
         ) {
+            // Surah banner, always visible, like a printed mushaf header.
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
-                    .glassSurface(shape = RoundedCornerShape(24.dp), variant = GlassVariant.ELEVATED)
-                    .padding(8.dp),
+                    .padding(horizontal = 18.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                Text("Juz ${surah.juz}", style = DuaType.caption, color = c.inkMuted, modifier = Modifier.weight(1f))
                 Box(
                     Modifier
-                        .size(48.dp)
-                        .glassSurface(shape = CircleShape, variant = GlassVariant.FROST)
-                        .bounceClick(role = Role.Button, onClickLabel = "Back", onClick = onClose),
-                    contentAlignment = Alignment.Center,
-                ) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = c.ink) }
-                Column(
-                    Modifier
-                        .weight(1f)
-                        .padding(horizontal = 12.dp),
-                ) {
-                    Text(surah.nameEn, style = DuaType.title, color = c.ink, maxLines = 1)
-                    Text("Page ${pager.currentPage + 1} of ${surah.pages}", style = DuaType.caption, color = c.inkMuted)
-                }
-                if (dua != null) {
-                    Pill(
-                        text = if (playingThis) "Pause" else "Listen",
-                        filled = playingThis,
-                        icon = if (playingThis) AppIcons.Pause else Icons.Rounded.PlayArrow,
-                    ) { ask(); if (ps.mediaId == dua.id) PlayerHub.toggle() else PlayerHub.playDua(dua) }
+                        .border(1.dp, gold, RoundedCornerShape(10.dp))
+                        .padding(3.dp)
+                        .border(1.dp, gold.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 22.dp, vertical = 4.dp),
+                ) { Text(surah.nameAr, style = DuaType.arabic(22), color = c.ink) }
+                Text(
+                    "Surah ${surah.number}",
+                    style = DuaType.caption,
+                    color = c.inkMuted,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                if (verseMode) {
+                    VerseList(surah, gold, onTap = { chrome = !chrome })
+                } else {
+                    HorizontalPager(
+                        state = pager,
+                        reverseLayout = true,
+                        userScrollEnabled = !zoomed,
+                        modifier = Modifier.fillMaxSize(),
+                    ) { page ->
+                        MushafPage(surah, page, onZoomChange = { zoomed = it }, onTap = { chrome = !chrome })
+                    }
                 }
             }
 
-            HorizontalPager(
-                state = pager,
-                reverseLayout = true,
-                userScrollEnabled = !zoomed,
-                pageSpacing = 8.dp,
-                contentPadding = PaddingValues(horizontal = 10.dp),
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            ) { page ->
-                MushafPage(surah, page, onZoomChange = { zoomed = it })
-            }
-
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 14.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Right-to-left, like the pages.
-                for (i in surah.pages - 1 downTo 0) {
-                    val on = i == pager.currentPage
-                    val w by animateDpAsState(if (on) 22.dp else 8.dp, tween(260), label = "dotWidth")
-                    val col by animateColorAsState(if (on) c.brand else c.border, tween(260), label = "dotColor")
+            // Page number medallion.
+            if (!verseMode) {
+                Box(Modifier.fillMaxWidth().padding(vertical = 6.dp), contentAlignment = Alignment.Center) {
                     Box(
                         Modifier
-                            .padding(horizontal = 4.dp)
-                            .size(width = w, height = 8.dp)
-                            .clip(CircleShape)
-                            .background(col)
-                            .bounceClick(role = Role.Button, onClickLabel = "Go to page ${i + 1}") {
-                                scope.launch { pager.animateScrollToPage(i) }
-                            },
-                    )
+                            .size(34.dp)
+                            .border(1.dp, gold, CircleShape)
+                            .padding(3.dp)
+                            .border(1.dp, gold.copy(alpha = 0.5f), CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) { Text("${pager.currentPage + 1}", style = DuaType.caption.copy(fontWeight = FontWeight.Bold), color = c.ink) }
                 }
+            }
+
+            AnimatedVisibility(
+                chrome,
+                enter = fadeIn() + slideInVertically { it / 2 },
+                exit = fadeOut() + slideOutVertically { it / 2 },
+            ) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .glassSurface(shape = RoundedCornerShape(28.dp), variant = GlassVariant.ELEVATED)
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(
+                        Modifier
+                            .size(48.dp)
+                            .glassSurface(shape = CircleShape, variant = GlassVariant.FROST)
+                            .bounceClick(role = Role.Button, onClickLabel = "Back", onClick = onClose),
+                        contentAlignment = Alignment.Center,
+                    ) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = c.ink) }
+                    Pill(
+                        text = if (verseMode) "Mushaf" else "Verses",
+                        filled = false,
+                        modifier = Modifier.weight(1f).testTag("verseToggle"),
+                    ) { verseMode = !verseMode }
+                    if (dua != null) {
+                        Pill(
+                            text = if (playingThis) "Pause" else "Listen",
+                            filled = true,
+                            icon = if (playingThis) AppIcons.Pause else Icons.Rounded.PlayArrow,
+                            modifier = Modifier.weight(1f),
+                        ) { ask(); if (ps.mediaId == dua.id) PlayerHub.toggle() else PlayerHub.playDua(dua) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VerseList(surah: MushafSurah, gold: Color, onTap: () -> Unit) {
+    val c = Tokens.colors
+    val dua = SampleDuas.all.first { it.id == surah.id }
+    LazyColumn(
+        Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) { detectTapGestures(onTap = { onTap() }) },
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+    ) {
+        item {
+            Column(Modifier.fillMaxWidth().border(1.dp, gold.copy(alpha = 0.6f), RoundedCornerShape(16.dp)).padding(14.dp)) {
+                Text("Read: ${surah.whenToRead}", style = DuaType.caption.copy(fontWeight = FontWeight.Bold), color = gold)
+                Spacer(Modifier.height(6.dp))
+                surah.benefits.forEach { Text("•  $it", style = DuaType.caption, color = c.ink) }
+                Spacer(Modifier.height(6.dp))
+                Text(surah.benefitNote, style = DuaType.caption, color = c.inkMuted)
+            }
+        }
+        items(dua.lines.size) { i ->
+            val line = dua.lines[i]
+            Column(Modifier.fillMaxWidth()) {
+                Text(
+                    line.arabic,
+                    style = DuaType.arabic(30),
+                    color = c.ink,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(line.translation, style = DuaType.caption, color = c.inkMuted)
+                Spacer(Modifier.height(14.dp))
+                Box(Modifier.fillMaxWidth().height(1.dp).background(gold.copy(alpha = 0.25f)))
             }
         }
     }
@@ -287,7 +436,7 @@ fun MushafReader(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun MushafPage(surah: MushafSurah, page: Int, onZoomChange: (Boolean) -> Unit) {
+private fun MushafPage(surah: MushafSurah, page: Int, onZoomChange: (Boolean) -> Unit, onTap: () -> Unit) {
     val c = Tokens.colors
     val context = LocalContext.current
     val bitmap by produceState<ImageBitmap?>(null, surah.id, page) {
@@ -308,18 +457,15 @@ private fun MushafPage(surah: MushafSurah, page: Int, onZoomChange: (Boolean) ->
         setScale(scale * zoom)
         if (scale > 1f) offset += pan
     }
-    val paper = if (c.isDark) Color(0x14FFFFFF) else Color(0xF2FFFBF2)
     Box(
         Modifier
             .fillMaxSize()
-            .glassSurface(shape = RoundedCornerShape(24.dp), variant = GlassVariant.ELEVATED)
-            .background(paper)
             .clipToBounds()
             .pointerInput(Unit) {
-                detectTapGestures(onDoubleTap = { setScale(if (scale > 1f) 1f else 2.2f) })
+                detectTapGestures(onTap = { onTap() }, onDoubleTap = { setScale(if (scale > 1f) 1f else 2.2f) })
             }
             .transformable(transform, canPan = { scale > 1f })
-            .padding(6.dp),
+            .padding(horizontal = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
         val bmp = bitmap

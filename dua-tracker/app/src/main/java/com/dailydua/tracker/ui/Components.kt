@@ -69,6 +69,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -256,19 +257,14 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
     val reduceMotion = rememberReduceMotion()
     val infinite = rememberInfiniteTransition(label = "ambient")
     val driftA = infinite.animateFloat(
-        -1f, 1f, infiniteRepeatable(tween(11000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "driftA",
+        -1f, 1f, infiniteRepeatable(tween(13000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "driftA",
     )
     val driftB = infinite.animateFloat(
-        1f, -1f, infiniteRepeatable(tween(14000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "driftB",
+        1f, -1f, infiniteRepeatable(tween(17000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "driftB",
     )
-    val pulse = infinite.animateFloat(
-        0.94f, 1.07f, infiniteRepeatable(tween(8500, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "pulse",
-    )
-    val turn = infinite.animateFloat(
-        0f, 360f, infiniteRepeatable(tween(90000, easing = LinearEasing)), label = "turn",
-    )
-    val rise = infinite.animateFloat(
-        0f, 1f, infiniteRepeatable(tween(26000, easing = LinearEasing)), label = "rise",
+    // One full turn of the wave phase; every wave uses whole multiples so the loop is seamless.
+    val flow = infinite.animateFloat(
+        0f, 6.2831855f, infiniteRepeatable(tween(36000, easing = LinearEasing)), label = "flow",
     )
 
     val bgTop by animateColorAsState(c.surface100, tween(450), label = "bgTop")
@@ -285,9 +281,7 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
             val h = size.height
             val dA = if (reduceMotion) 0f else driftA.value
             val dB = if (reduceMotion) 0f else driftB.value
-            val p = if (reduceMotion) 1f else pulse.value
-            val t = if (reduceMotion) 0f else turn.value
-            val r = if (reduceMotion) 0.3f else rise.value
+            val t = if (reduceMotion) 1.2f else flow.value
 
             fun orb(color: Color, x: Float, y: Float, radius: Float) {
                 val center = Offset(x, y)
@@ -297,61 +291,41 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                     center = center,
                 )
             }
-            orb(c.orbSecondary, w * (0.88f + 0.05f * dA), h * (0.10f + 0.03f * dB), w * 0.72f * p)
-            orb(c.orbPrimary, w * (0.10f + 0.06f * dB), h * (0.26f + 0.04f * dA), w * 0.80f)
-            orb(c.orbTertiary, w * (0.92f + 0.05f * dA), h * (0.58f + 0.05f * dB), w * 0.66f * p)
-            orb(c.orbPrimary, w * (0.20f + 0.06f * dB), h * (0.90f + 0.02f * dA), w * 0.76f)
+            orb(c.orbSecondary, w * (0.90f + 0.05f * dA), h * (0.08f + 0.03f * dB), w * 0.70f)
+            orb(c.orbPrimary, w * (0.06f + 0.06f * dB), h * (0.30f + 0.04f * dA), w * 0.78f)
 
-            // Aurora ribbon sweeping slowly across the middle of the screen.
-            val bandY = h * (0.42f + 0.06f * dA)
-            drawRect(
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        c.orbTertiary.copy(alpha = c.orbTertiary.alpha * 0.9f),
-                        c.orbSecondary.copy(alpha = c.orbSecondary.alpha * 0.7f),
-                        Color.Transparent,
+            // Layered silk: three slow ribbons of colour rolling across the lower screen.
+            fun silk(baseY: Float, amp: Float, k1: Float, k2: Float, phase: Float, dir: Float, fill: Color, edge: Color) {
+                fun yAt(x: Float): Float {
+                    val u = x / w
+                    return baseY +
+                        amp * kotlin.math.sin(u * 6.2831855f * k1 + dir * t + phase) +
+                        amp * 0.45f * kotlin.math.sin(u * 6.2831855f * k2 - 2f * dir * t + phase * 1.7f)
+                }
+                val top = Path()
+                var x = 0f
+                top.moveTo(0f, yAt(0f))
+                while (x < w) { x += 14f; top.lineTo(minOf(x, w), yAt(minOf(x, w))) }
+                val body = Path().apply {
+                    addPath(top)
+                    lineTo(w, h)
+                    lineTo(0f, h)
+                    close()
+                }
+                drawPath(
+                    body,
+                    brush = Brush.verticalGradient(
+                        listOf(fill, fill.copy(alpha = fill.alpha * 0.25f), Color.Transparent),
+                        startY = baseY - amp * 1.5f,
+                        endY = baseY + h * 0.30f,
                     ),
-                    start = Offset(w * (-0.2f + 0.2f * dB), bandY - h * 0.12f),
-                    end = Offset(w * (1.2f + 0.2f * dB), bandY + h * 0.12f),
-                ),
-                topLeft = Offset(0f, bandY - h * 0.16f),
-                size = androidx.compose.ui.geometry.Size(w, h * 0.32f),
-            )
-
-            // Faint rotating eight-point star (Rub el Hizb) with a ring, top right.
-            val starColor = c.glassBorderTop.copy(alpha = if (c.isDark) 0.10f else 0.30f)
-            val sc = Offset(w * (0.84f + 0.02f * dA), h * (0.11f + 0.01f * dB))
-            val side = w * 0.40f * p
-            rotate(t, sc) {
-                drawRect(starColor, Offset(sc.x - side / 2, sc.y - side / 2), androidx.compose.ui.geometry.Size(side, side), style = Stroke(1.2.dp.toPx()))
-            }
-            rotate(t + 45f, sc) {
-                drawRect(starColor, Offset(sc.x - side / 2, sc.y - side / 2), androidx.compose.ui.geometry.Size(side, side), style = Stroke(1.2.dp.toPx()))
-            }
-            drawCircle(starColor, radius = side * 0.36f, center = sc, style = Stroke(1.dp.toPx()))
-            drawCircle(starColor.copy(alpha = starColor.alpha * 0.6f), radius = side * 0.78f, center = sc, style = Stroke(1.dp.toPx()))
-
-            // Soft motes of light drifting upward and twinkling.
-            val moteColor = if (c.isDark) Color(0xFFFFE8B0) else Color.White
-            for (i in 0 until 18) {
-                val seedX = ((i * 73) % 100) / 100f
-                val speed = 0.6f + ((i * 37) % 50) / 100f
-                val phase = ((i * 53) % 100) / 100f
-                val y = 1.05f - ((r * speed + phase) % 1f) * 1.15f
-                val x = seedX + 0.03f * kotlin.math.sin((r * 6.28f * 2f) + i)
-                val twinkle = 0.35f + 0.65f * kotlin.math.abs(kotlin.math.sin(r * 6.28f * 3f + i * 1.7f))
-                val radius = (1.6f + (i % 4)) * density
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        listOf(moteColor.copy(alpha = (if (c.isDark) 0.55f else 0.85f) * twinkle), Color.Transparent),
-                        center = Offset(x * w, y * h),
-                        radius = radius * 3f,
-                    ),
-                    radius = radius * 3f,
-                    center = Offset(x * w, y * h),
                 )
+                drawPath(top, color = edge, style = Stroke(1.2.dp.toPx()))
             }
+            val edgeA = Color.White.copy(alpha = if (c.isDark) 0.10f else 0.55f)
+            silk(h * (0.62f + 0.01f * dA), h * 0.030f, 1.1f, 2.3f, 0.0f, 1f, c.orbTertiary, edgeA)
+            silk(h * (0.74f + 0.01f * dB), h * 0.034f, 0.9f, 1.9f, 2.1f, -1f, c.orbSecondary, edgeA)
+            silk(h * (0.86f + 0.01f * dA), h * 0.028f, 1.3f, 2.7f, 4.0f, 1f, c.orbPrimary, edgeA)
         }
         content()
     }
