@@ -2,6 +2,7 @@ package com.dailydua.tracker.playback
 
 import android.content.ComponentName
 import android.content.Context
+import android.media.MediaMetadataRetriever
 import android.os.Handler
 import android.os.Looper
 import androidx.core.content.ContextCompat
@@ -85,6 +86,27 @@ object PlayerHub {
     fun hasAudio(context: Context, dua: Dua): Boolean {
         val asset = dua.audioAsset ?: return false
         return runCatching { context.assets.list("audio")?.contains(asset) == true }.getOrDefault(false)
+    }
+
+    private val durations = mutableMapOf<String, Long>()
+
+    /** Length of a bundled recording, read from the file so it can be shown before playback starts. */
+    fun assetDurationMs(context: Context, dua: Dua): Long {
+        val asset = dua.audioAsset ?: return 0
+        synchronized(durations) { durations[asset]?.let { return it } }
+        val ms = runCatching {
+            context.assets.openFd("audio/$asset").use { fd ->
+                val r = MediaMetadataRetriever()
+                try {
+                    r.setDataSource(fd.fileDescriptor, fd.startOffset, fd.length)
+                    r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+                } finally {
+                    r.release()
+                }
+            }
+        }.getOrDefault(0L)
+        synchronized(durations) { durations[asset] = ms }
+        return ms
     }
 
     private fun item(dua: Dua): MediaItem = MediaItem.Builder()

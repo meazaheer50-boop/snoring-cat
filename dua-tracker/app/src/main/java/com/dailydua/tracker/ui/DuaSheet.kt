@@ -1,5 +1,9 @@
 package com.dailydua.tracker.ui
 
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -51,12 +55,17 @@ fun DuaSheet(
         Column(
             Modifier
                 .fillMaxWidth()
+                .clip(sheetShape)
+                // A near-solid backing so the list behind the sheet does not show through the glass.
+                .background(c.surface100.copy(alpha = 0.94f))
                 .glassSurface(
                     shape = sheetShape,
                     variant = GlassVariant.ELEVATED,
                     borderWidth = 1.dp,
                 )
-                .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 28.dp),
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 20.dp),
         ) {
             Box(
                 Modifier
@@ -68,7 +77,11 @@ fun DuaSheet(
             )
 
             StaggeredEntrance(index = 0) {
-                SectionLabel(dua.title, badge = dua.tag)
+                Column {
+                    Text(dua.title, style = DuaType.displayMd.copy(fontSize = 22.sp, lineHeight = 28.sp), color = c.ink)
+                    Spacer(Modifier.height(2.dp))
+                    Text(dua.tag, style = DuaType.caption, color = c.brand)
+                }
             }
             Spacer(Modifier.height(14.dp))
 
@@ -107,7 +120,11 @@ fun DuaSheet(
                 }
             }
 
-            Spacer(Modifier.height(22.dp))
+            dua.source?.let {
+                Spacer(Modifier.height(10.dp))
+                Text(it, style = DuaType.caption, color = c.inkMuted, modifier = Modifier.padding(horizontal = 4.dp))
+            }
+            Spacer(Modifier.height(18.dp))
             StaggeredEntrance(index = 2) {
                 Column {
                     PrimaryButton(

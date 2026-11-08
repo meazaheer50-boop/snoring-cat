@@ -248,8 +248,8 @@ fun MushafReader(
                 state = pager,
                 reverseLayout = true,
                 userScrollEnabled = !zoomed,
-                pageSpacing = 12.dp,
-                contentPadding = PaddingValues(horizontal = 16.dp),
+                pageSpacing = 8.dp,
+                contentPadding = PaddingValues(horizontal = 10.dp),
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
@@ -319,7 +319,7 @@ private fun MushafPage(surah: MushafSurah, page: Int, onZoomChange: (Boolean) ->
                 detectTapGestures(onDoubleTap = { setScale(if (scale > 1f) 1f else 2.2f) })
             }
             .transformable(transform, canPan = { scale > 1f })
-            .padding(10.dp),
+            .padding(6.dp),
         contentAlignment = Alignment.Center,
     ) {
         val bmp = bitmap

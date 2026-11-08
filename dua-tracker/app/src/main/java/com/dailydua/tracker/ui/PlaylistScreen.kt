@@ -114,9 +114,9 @@ fun PlaylistScreen(ui: UiState, vm: DuaViewModel, onOpen: (Dua) -> Unit) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 PillButton(
-                    "Play all (${queue.size})",
-                    filled = true,
-                    onClick = { ask(); PlayerHub.playQueue(queue) },
+                    if (queue.isEmpty()) "Add recordings below" else "Play all (${queue.size})",
+                    filled = queue.isNotEmpty(),
+                    onClick = { if (queue.isNotEmpty()) { ask(); PlayerHub.playQueue(queue) } },
                     modifier = Modifier.weight(1f),
                 )
                 PillButton(

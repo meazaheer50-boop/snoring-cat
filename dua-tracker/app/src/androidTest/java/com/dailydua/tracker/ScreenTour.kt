@@ -91,11 +91,11 @@ class ScreenTour {
             shot("01_today_light", 1500)
             scrollTo("Dua al-Qunoot")
             shot("02_today_recitations")
-            scrollTo("Janazah prayer, step by step")
+            scrollTo("Janazah prayer guide")
             shot("03_today_more")
         }
         step("janazah") {
-            rule.onNodeWithText("Janazah prayer, step by step").performClick()
+            rule.onNodeWithText("Janazah prayer guide").performClick()
             shot("04_janazah_reader")
             rule.onAllNodes(hasScrollAction()).onFirst().performTouchInput { swipeUp() }
             shot("05_janazah_scrolled")
@@ -122,9 +122,10 @@ class ScreenTour {
             shot("10_quran_tab")
             rule.onAllNodesWithText("Start reading").onFirst().performClick()
             shot("11_mushaf_page1", 2000)
-            rule.onRoot().performTouchInput { swipeRight() }
+            rule.onRoot().performTouchInput { swipeRight(startX = width * 0.3f, endX = width * 0.75f) }
             shot("12_mushaf_page2", 1500)
-            rule.onRoot().performTouchInput { swipeLeft() }
+            rule.onRoot().performTouchInput { swipeRight(startX = width * 0.3f, endX = width * 0.75f) }
+            shot("12b_mushaf_page3", 1500)
             back()
             shot("13_quran_continue")
         }

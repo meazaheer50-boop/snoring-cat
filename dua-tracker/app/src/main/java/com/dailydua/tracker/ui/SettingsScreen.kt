@@ -1,5 +1,9 @@
 package com.dailydua.tracker.ui
 
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.Icons
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -307,19 +311,18 @@ private fun SwitchRow(title: String, caption: String?, checked: Boolean, onChang
 }
 
 @Composable
-private fun Stepper(label: String, value: String, onMinus: () -> Unit, onPlus: () -> Unit) {
+private fun TimeWheel(value: String, label: String, onUp: () -> Unit, onDown: () -> Unit) {
     val c = Tokens.colors
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, style = DuaType.label, color = c.inkMuted)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(44.dp).clip(CircleShape).background(c.hairline).clickable(onClick = onMinus), contentAlignment = Alignment.Center) {
-                Text("\u2212", style = DuaType.title, color = c.ink)
-            }
-            Text(value, style = DuaType.displayMd, color = c.ink, modifier = Modifier.width(72.dp), textAlign = TextAlign.Center)
-            Box(Modifier.size(44.dp).clip(CircleShape).background(c.hairline).clickable(onClick = onPlus), contentAlignment = Alignment.Center) {
-                Text("+", style = DuaType.title, color = c.ink)
-            }
-        }
+        Box(
+            Modifier.size(48.dp).clip(CircleShape).background(c.hairline).clickable(onClickLabel = "Increase $label", onClick = onUp),
+            contentAlignment = Alignment.Center,
+        ) { Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = "Increase $label", tint = c.ink) }
+        Text(value, style = DuaType.displayLg, color = c.ink, modifier = Modifier.padding(vertical = 4.dp))
+        Box(
+            Modifier.size(48.dp).clip(CircleShape).background(c.hairline).clickable(onClickLabel = "Decrease $label", onClick = onDown),
+            contentAlignment = Alignment.Center,
+        ) { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Decrease $label", tint = c.ink) }
     }
 }
 
@@ -348,13 +351,25 @@ private fun ReminderDialog(
                 OutlinedTextField(
                     value = label,
                     onValueChange = { label = it.take(40) },
-                    label = { Text("Name (for example, Dua for success)") },
+                    label = { Text("Name, e.g. Dua for success") },
                     singleLine = true,
                 )
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    Stepper("HOUR", "%02d".format(hour), { hour = (hour + 23) % 24 }, { hour = (hour + 1) % 24 })
-                    Stepper("MINUTE", "%02d".format(minute), { minute = (minute + 55) % 60 }, { minute = (minute + 5) % 60 })
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TimeWheel("%02d".format(hour), "hour", { hour = (hour + 1) % 24 }, { hour = (hour + 23) % 24 })
+                    Text(":", style = DuaType.displayLg, color = c.inkMuted, modifier = Modifier.padding(horizontal = 10.dp))
+                    TimeWheel("%02d".format(minute), "minute", { minute = (minute + 5) % 60 }, { minute = (minute + 55) % 60 })
                 }
+                Text(
+                    Reminder("", "", hour, minute).timeText(),
+                    style = DuaType.caption.copy(fontWeight = FontWeight.SemiBold),
+                    color = c.inkMuted,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     dayNames.forEachIndexed { i, n ->
                         val on = days and (1 shl i) != 0

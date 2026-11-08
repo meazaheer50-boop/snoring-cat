@@ -56,6 +56,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -78,7 +79,9 @@ import com.dailydua.tracker.data.Dua
 import com.dailydua.tracker.data.Settings
 import com.dailydua.tracker.ui.theme.DuaType
 import com.dailydua.tracker.ui.theme.Tokens
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 /** Full-screen glassmorphic reader for a long dua. The line being recited is highlighted and followed as the audio plays. */
 @Composable
@@ -94,6 +97,9 @@ fun DuaReaderScreen(
     val ps by PlayerHub.state.collectAsStateWithLifecycle()
     val available = remember(dua.id) { PlayerHub.hasAudio(context, dua) }
     val ask = LocalAskNotifications.current
+    val fileDuration by produceState(0L, dua.id) {
+        value = withContext(Dispatchers.IO) { PlayerHub.assetDurationMs(context, dua) }
+    }
     val isThis = ps.mediaId == dua.id
     val positionMs = if (isThis) ps.positionMs.toInt() else 0
     val playing = isThis && ps.isPlaying
@@ -312,7 +318,7 @@ fun DuaReaderScreen(
             }
 
             if (available) {
-                val duration = (if (isThis) ps.durationMs.toInt() else 0).coerceAtLeast(1)
+                val duration = (if (isThis && ps.durationMs > 0) ps.durationMs else fileDuration).toInt().coerceAtLeast(1)
                 Column(
                     Modifier
                         .fillMaxWidth()

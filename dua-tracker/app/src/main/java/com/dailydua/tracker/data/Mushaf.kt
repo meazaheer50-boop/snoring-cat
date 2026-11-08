@@ -16,6 +16,6 @@ data class MushafSurah(
 object Mushaf {
     val all = listOf(
         MushafSurah("mulk", "سُورَةُ المُلْك", "Surah Al-Mulk", "The Sovereignty", 67, 30, 4, "mulk"),
-        MushafSurah("waqiah", "سُورَةُ الوَاقِعَة", "Surah Al-Waqi’ah", "The Inevitable Event", 56, 96, 6, "waqiah"),
+        MushafSurah("waqiah", "سُورَةُ الوَاقِعَة", "Surah Al-Waqi’ah", "The Inevitable", 56, 96, 6, "waqiah"),
     )
 }

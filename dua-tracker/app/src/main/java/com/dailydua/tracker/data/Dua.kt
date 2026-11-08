@@ -90,7 +90,7 @@ object SampleDuas {
             source = "Arabic: Tanzil (Uthmani). English: Saheeh International. Verse start times were matched to the recording.",
         ),
         Dua(
-            id = "janazah", title = "Janazah prayer, step by step", tag = "4 takbirs · what to recite", time = TimeOfDay.ANYTIME,
+            id = "janazah", title = "Janazah prayer guide", tag = "4 takbirs · what to recite", time = TimeOfDay.ANYTIME,
             lines = JanazahData.lines,
             category = "Janazah prayer",
             source = "The 3rd takbir duas follow the page you sent. Al-Fatiha from Tanzil. The other texts are written from memory (Bukhari 3370, Muslim 963). Scholars differ on some details; follow your local imam.",
