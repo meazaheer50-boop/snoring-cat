@@ -49,7 +49,7 @@ private fun SmallIconButton(icon: androidx.compose.ui.graphics.vector.ImageVecto
     val c = Tokens.colors
     Box(
         Modifier
-            .size(40.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .clickable(role = Role.Button, onClickLabel = label, onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -82,6 +82,7 @@ fun PlaylistScreen(ui: UiState, vm: DuaViewModel, onOpen: (Dua) -> Unit) {
     val c = Tokens.colors
     val context = LocalContext.current
     val ps by PlayerHub.state.collectAsStateWithLifecycle()
+    val ask = LocalAskNotifications.current
     val audioDuas = remember { SampleDuas.all.filter { PlayerHub.hasAudio(context, it) } }
     val byId = audioDuas.associateBy { it.id }
     val queue = ui.playlist.mapNotNull { byId[it] }
@@ -115,7 +116,7 @@ fun PlaylistScreen(ui: UiState, vm: DuaViewModel, onOpen: (Dua) -> Unit) {
                 PillButton(
                     "Play all (${queue.size})",
                     filled = true,
-                    onClick = { PlayerHub.playQueue(queue) },
+                    onClick = { ask(); PlayerHub.playQueue(queue) },
                     modifier = Modifier.weight(1f),
                 )
                 PillButton(
@@ -144,7 +145,7 @@ fun PlaylistScreen(ui: UiState, vm: DuaViewModel, onOpen: (Dua) -> Unit) {
                 Column(
                     Modifier
                         .weight(1f)
-                        .clickable { PlayerHub.playQueue(queue, i) }
+                        .clickable { ask(); PlayerHub.playQueue(queue, i) }
                         .padding(vertical = 8.dp),
                 ) {
                     Text("${i + 1}. ${d.title}", style = DuaType.title, color = c.ink)
@@ -214,7 +215,7 @@ fun MiniPlayer(onOpen: (Dua) -> Unit) {
                 maxLines = 1,
             )
         }
-        if (ps.hasPrevious) SmallIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Previous") { PlayerHub.previous() }
+        if (ps.hasPrevious) SmallIconButton(AppIcons.Previous, "Previous") { PlayerHub.previous() }
         Box(
             Modifier
                 .size(44.dp)
@@ -224,14 +225,12 @@ fun MiniPlayer(onOpen: (Dua) -> Unit) {
             contentAlignment = Alignment.Center,
         ) {
             if (ps.isPlaying) {
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    repeat(2) { Box(Modifier.size(width = 5.dp, height = 16.dp).clip(RoundedCornerShape(2.dp)).background(c.onBrand)) }
-                }
+                Icon(AppIcons.Pause, contentDescription = null, tint = c.onBrand, modifier = Modifier.size(24.dp))
             } else {
                 Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = c.onBrand, modifier = Modifier.size(26.dp))
             }
         }
-        if (ps.hasNext) SmallIconButton(Icons.AutoMirrored.Rounded.ArrowForward, "Next") { PlayerHub.next() }
+        if (ps.hasNext) SmallIconButton(AppIcons.Next, "Next") { PlayerHub.next() }
         Spacer(Modifier.width(2.dp))
     }
 }

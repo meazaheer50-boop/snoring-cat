@@ -59,8 +59,6 @@ fun TodayScreen(ui: UiState, onOpen: (Dua) -> Unit) {
     // Progress counts the daily morning and evening duas. The rest is a library to browse.
     val daily = all.filter { it.time != TimeOfDay.ANYTIME }
     val doneCount = daily.count { it.id in ui.doneToday }
-    val morning = all.filter { it.time == TimeOfDay.MORNING }
-    val evening = all.filter { it.time == TimeOfDay.EVENING }
     val groups = all.filter { it.category != null }.groupBy { it.category!! }
 
     LazyColumn(
@@ -74,8 +72,7 @@ fun TodayScreen(ui: UiState, onOpen: (Dua) -> Unit) {
         item(key = "hero") {
             StaggeredEntrance(index = 1) { Hero(doneCount, daily.size) }
         }
-        daySection("Morning", morning, ui, onOpen)
-        daySection("Evening", evening, ui, onOpen)
+        daySection("Through the day", daily, ui, onOpen)
         groups.forEach { (title, list) -> daySection(title, list, ui, onOpen) }
     }
 }
@@ -187,6 +184,7 @@ private fun Hero(done: Int, total: Int) {
                 variant = GlassVariant.EMERALD,
                 borderWidth = 1.dp,
             )
+            .shimmerSweep()
             .padding(22.dp),
     ) {
         Row(

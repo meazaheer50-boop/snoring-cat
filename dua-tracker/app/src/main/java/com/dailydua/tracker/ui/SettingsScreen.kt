@@ -71,6 +71,7 @@ fun SettingsScreen(ui: UiState, vm: DuaViewModel) {
     val settings = ui.settings
     val context = LocalContext.current
     var editing by remember { mutableStateOf<Reminder?>(null) }
+    val ask = LocalAskNotifications.current
     val animatedArabicSize by animateIntAsState(
         targetValue = settings.arabicSize,
         animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
@@ -107,9 +108,9 @@ fun SettingsScreen(ui: UiState, vm: DuaViewModel) {
         StaggeredEntrance(index = 2) {
             Column {
         Group("Reminders") {
-            SwitchRow("Morning reminder", Reminder.morning.timeText(), settings.morningReminder, vm::setMorningReminder)
+            SwitchRow("Morning reminder", Reminder.morning.timeText(), settings.morningReminder) { if (it) ask(); vm.setMorningReminder(it) }
             HorizontalDivider(color = c.hairline)
-            SwitchRow("Evening reminder", Reminder.evening.timeText(), settings.eveningReminder, vm::setEveningReminder)
+            SwitchRow("Evening reminder", Reminder.evening.timeText(), settings.eveningReminder) { if (it) ask(); vm.setEveningReminder(it) }
             ui.reminders.forEach { r ->
                 HorizontalDivider(color = c.hairline)
                 Row(
@@ -260,7 +261,7 @@ fun SettingsScreen(ui: UiState, vm: DuaViewModel) {
         ReminderDialog(
             initial = r,
             isNew = ui.reminders.none { it.id == r.id },
-            onSave = { vm.saveReminder(it); editing = null },
+            onSave = { ask(); vm.saveReminder(it); editing = null },
             onDelete = { vm.deleteReminder(r); editing = null },
             onDismiss = { editing = null },
         )

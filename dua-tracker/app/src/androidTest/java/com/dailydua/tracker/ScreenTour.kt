@@ -1,0 +1,174 @@
+package com.dailydua.tracker
+
+import android.Manifest
+import android.graphics.Bitmap
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.test.swipeUp
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.rule.GrantPermissionRule
+import androidx.test.uiautomator.UiDevice
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+
+/**
+ * Walks through every screen in light and dark mode and saves a screenshot of each step to
+ * /data/local/tmp/shots on the device. Used by the UI test workflow for a visual review.
+ */
+@RunWith(AndroidJUnit4::class)
+class ScreenTour {
+    @get:Rule(order = 0)
+    val notifications: GrantPermissionRule = GrantPermissionRule.grant(Manifest.permission.POST_NOTIFICATIONS)
+
+    @get:Rule(order = 1)
+    val rule = createAndroidComposeRule<MainActivity>()
+
+    private val inst get() = InstrumentationRegistry.getInstrumentation()
+    private val device get() = UiDevice.getInstance(inst)
+
+    private fun shell(cmd: String) {
+        inst.uiAutomation.executeShellCommand(cmd).use { pfd ->
+            FileInputStream(pfd.fileDescriptor).use { it.readBytes() }
+        }
+    }
+
+    private fun shot(name: String, settleMs: Long = 900) {
+        rule.waitForIdle()
+        Thread.sleep(settleMs)
+        val bmp = inst.uiAutomation.takeScreenshot() ?: return
+        val dir = File(inst.targetContext.getExternalFilesDir(null), "shots").apply { mkdirs() }
+        val f = File(dir, "$name.png")
+        FileOutputStream(f).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        shell("mkdir -p /data/local/tmp/shots")
+        shell("cp ${f.absolutePath} /data/local/tmp/shots/$name.png")
+    }
+
+    private fun step(name: String, block: () -> Unit) {
+        try {
+            block()
+        } catch (t: Throwable) {
+            android.util.Log.e("ScreenTour", "Step $name failed", t)
+            shot("ERR_$name")
+            throw t
+        }
+    }
+
+    private fun scrollTo(text: String) {
+        rule.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText(text))
+    }
+
+    private fun back() {
+        device.pressBack()
+        rule.waitForIdle()
+        Thread.sleep(500)
+    }
+
+    private fun tab(name: String) {
+        rule.onNodeWithContentDescription(name).performClick()
+        rule.waitForIdle()
+    }
+
+    @Test
+    fun tour() {
+        step("today") {
+            shot("01_today_light", 1500)
+            scrollTo("Dua al-Qunoot")
+            shot("02_today_recitations")
+            scrollTo("Janazah prayer, step by step")
+            shot("03_today_more")
+        }
+        step("janazah") {
+            rule.onNodeWithText("Janazah prayer, step by step").performClick()
+            shot("04_janazah_reader")
+            rule.onAllNodes(hasScrollAction()).onFirst().performTouchInput { swipeUp() }
+            shot("05_janazah_scrolled")
+            back()
+        }
+        step("short_dua") {
+            scrollTo("Upon waking up")
+            rule.onNodeWithText("Upon waking up").performClick()
+            shot("06_short_dua_sheet")
+            back()
+        }
+        step("recitation") {
+            scrollTo("Dua al-Qunoot")
+            rule.onNodeWithText("Dua al-Qunoot").performClick()
+            shot("07_qunoot_reader")
+            rule.onNodeWithTag("play").performClick()
+            Thread.sleep(6000)
+            shot("08_qunoot_playing")
+            back()
+            shot("09_today_mini_player")
+        }
+        step("quran") {
+            tab("Quran")
+            shot("10_quran_tab")
+            rule.onAllNodesWithText("Start reading").onFirst().performClick()
+            shot("11_mushaf_page1", 2000)
+            rule.onRoot().performTouchInput { swipeRight() }
+            shot("12_mushaf_page2", 1500)
+            rule.onRoot().performTouchInput { swipeLeft() }
+            back()
+            shot("13_quran_continue")
+        }
+        step("playlist") {
+            tab("Playlist")
+            shot("14_playlist_empty")
+            rule.onNodeWithText("Add all").performClick()
+            shot("15_playlist_filled")
+            rule.onNodeWithText("Play all", substring = true).performClick()
+            Thread.sleep(2500)
+            shot("16_playlist_playing")
+        }
+        step("notification") {
+            device.openNotification()
+            Thread.sleep(2500)
+            shot("17_notification_shade", 300)
+            back()
+        }
+        step("settings") {
+            tab("Settings")
+            shot("18_settings_light")
+            scrollTo("+ Add a custom reminder")
+            shot("19_settings_reminders")
+            rule.onNodeWithText("+ Add a custom reminder").performClick()
+            shot("20_reminder_dialog")
+            rule.onNodeWithText("Cancel").performClick()
+        }
+        step("dark") {
+            scrollTo("Dark")
+            rule.onNodeWithText("Dark").performClick()
+            shot("21_settings_dark", 1200)
+            tab("Today")
+            shot("22_today_dark", 1500)
+            scrollTo("Surah Al-Mulk")
+            rule.onNodeWithText("Surah Al-Mulk").performClick()
+            shot("23_mulk_reader_dark")
+            back()
+            tab("Quran")
+            shot("24_quran_dark")
+            rule.onAllNodesWithText("Surah Al-Waqi’ah").onFirst().performClick()
+            shot("25_mushaf_dark", 2000)
+            back()
+            tab("Playlist")
+            shot("26_playlist_dark")
+        }
+    }
+}

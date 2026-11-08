@@ -69,6 +69,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -92,6 +93,7 @@ fun DuaReaderScreen(
     val context = LocalContext.current
     val ps by PlayerHub.state.collectAsStateWithLifecycle()
     val available = remember(dua.id) { PlayerHub.hasAudio(context, dua) }
+    val ask = LocalAskNotifications.current
     val isThis = ps.mediaId == dua.id
     val positionMs = if (isThis) ps.positionMs.toInt() else 0
     val playing = isThis && ps.isPlaying
@@ -137,7 +139,7 @@ fun DuaReaderScreen(
                         .padding(horizontal = 12.dp),
                 ) {
                     Text(dua.title, style = DuaType.title, color = c.ink)
-                    Text("${dua.lines.size} verses", style = DuaType.caption, color = c.inkMuted)
+                    Text(if (dua.audioAsset == null) "${dua.lines.size} steps" else "${dua.lines.size} lines \u00b7 tap a line to play from there", style = DuaType.caption, color = c.inkMuted, maxLines = 1)
                 }
                 Row(
                     Modifier
@@ -208,7 +210,7 @@ fun DuaReaderScreen(
                             style = DuaType.caption.copy(fontWeight = FontWeight.Bold),
                             color = c.goldInk,
                         )
-                        if (!available) {
+                        if (dua.audioAsset != null && !available) {
                             Text("Audio is not included in this build.", style = DuaType.caption, color = c.inkMuted)
                         }
                         dua.source?.let { Text(it, style = DuaType.caption, color = c.inkMuted) }
@@ -249,7 +251,7 @@ fun DuaReaderScreen(
                             .bounceClick(
                                 pressedScale = 0.98f,
                                 enabled = available,
-                            ) { PlayerHub.playFrom(dua, line.startMs) }
+                            ) { ask(); PlayerHub.playFrom(dua, line.startMs) }
                             .animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))
                             .padding(18.dp),
                     ) {
@@ -265,7 +267,7 @@ fun DuaReaderScreen(
                                     .padding(horizontal = 10.dp, vertical = 3.dp),
                             ) {
                                 Text(
-                                    "${i + 1} · ${clock(line.startMs.toInt())}",
+                                    line.heading ?: if (available) "${i + 1} · ${clock(line.startMs.toInt())}" else "${i + 1}",
                                     style = DuaType.label,
                                     color = chipInk,
                                 )
@@ -291,14 +293,16 @@ fun DuaReaderScreen(
                                 }
                             }
                         }
-                        Spacer(Modifier.height(10.dp))
-                        Text(
-                            line.arabic,
-                            style = DuaType.arabic(settings.arabicSize),
-                            color = c.ink,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        if (settings.showTranslation && line.translation.isNotBlank()) {
+                        if (line.arabic.isNotBlank()) {
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                line.arabic,
+                                style = DuaType.arabic(settings.arabicSize),
+                                color = c.ink,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                        if ((settings.showTranslation || line.heading != null) && line.translation.isNotBlank()) {
                             Spacer(Modifier.height(8.dp))
                             Text(line.translation, style = DuaType.body, color = if (active) c.ink else c.inkMuted)
                         }
@@ -334,6 +338,7 @@ fun DuaReaderScreen(
                         Text(clock(positionMs), style = DuaType.caption, color = c.inkMuted, modifier = Modifier.width(56.dp))
                         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                             PlayButton(playing) {
+                                ask()
                                 if (isThis) PlayerHub.toggle() else PlayerHub.playDua(dua)
                             }
                         }
@@ -430,6 +435,7 @@ private fun PlayButton(playing: Boolean, onClick: () -> Unit) {
         Box(
             Modifier
                 .size(56.dp)
+                .testTag("play")
                 .clip(CircleShape)
                 .background(
                     Brush.linearGradient(

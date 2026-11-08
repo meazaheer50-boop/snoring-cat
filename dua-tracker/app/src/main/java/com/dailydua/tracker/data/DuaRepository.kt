@@ -100,5 +100,13 @@ class DuaRepository(private val context: Context) {
         p[playlistKey]?.split(',')?.filter { it.isNotBlank() } ?: emptyList()
     }
 
+    private fun pageKey(id: String) = intPreferencesKey("page_$id")
+
+    val lastPages: Flow<Map<String, Int>> = context.store.data.map { p ->
+        Mushaf.all.associate { it.id to (p[pageKey(it.id)] ?: 0) }
+    }
+
+    suspend fun setLastPage(id: String, page: Int) { context.store.edit { it[pageKey(id)] = page } }
+
     suspend fun setPlaylist(ids: List<String>) { context.store.edit { it[playlistKey] = ids.joinToString(",") } }
 }

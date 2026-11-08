@@ -9,12 +9,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import com.dailydua.tracker.playback.PlayerHub
 import com.dailydua.tracker.ui.DuaApp
+import com.dailydua.tracker.ui.LocalAskNotifications
 
 class MainActivity : ComponentActivity() {
     private var launchDuaId by mutableStateOf<String?>(null)
@@ -25,12 +27,20 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         PlayerHub.init(this)
         launchDuaId = intent?.getStringExtra(EXTRA_DUA_ID)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) {
-            askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+        setContent {
+            CompositionLocalProvider(LocalAskNotifications provides ::askNotificationsOnce) {
+                DuaApp(launchDuaId = launchDuaId, onLaunchHandled = { launchDuaId = null })
+            }
         }
-        setContent { DuaApp(launchDuaId = launchDuaId, onLaunchHandled = { launchDuaId = null }) }
+    }
+
+    private var askedNotifications = false
+
+    private fun askNotificationsOnce() {
+        if (askedNotifications || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return
+        askedNotifications = true
+        askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
     override fun onNewIntent(intent: Intent) {

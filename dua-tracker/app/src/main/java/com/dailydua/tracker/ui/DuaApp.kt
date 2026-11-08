@@ -2,6 +2,9 @@ package com.dailydua.tracker.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -36,7 +39,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
@@ -59,6 +61,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.dailydua.tracker.data.Mushaf
 import com.dailydua.tracker.data.SampleDuas
 import com.dailydua.tracker.ui.theme.DuaTheme
 import com.dailydua.tracker.ui.theme.DuaType
@@ -71,6 +74,8 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
         GlassBackground {
             var tab by rememberSaveable { mutableStateOf(0) }
             var openId by rememberSaveable { mutableStateOf<String?>(null) }
+            var readingId by rememberSaveable { mutableStateOf<String?>(null) }
+            val readingSurah = Mushaf.all.firstOrNull { it.id == readingId }
             LaunchedEffect(Unit) { vm.rescheduleReminders() }
             LaunchedEffect(launchDuaId) {
                 if (launchDuaId != null) {
@@ -82,10 +87,10 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
             val openDua = SampleDuas.all.firstOrNull { it.id == openId }
             val readerDua = openDua?.takeIf { it.lines.isNotEmpty() }
             val sheetDua = openDua?.takeIf { it.lines.isEmpty() }
-            val readerOpen = readerDua != null
+            val readerOpen = readerDua != null || readingSurah != null
 
             // Navigate back from Settings tab to Today tab on system back press
-            BackHandler(enabled = tab != 0 && openId == null) {
+            BackHandler(enabled = tab != 0 && openId == null && readingId == null) {
                 tab = 0
             }
 
@@ -148,7 +153,8 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
                     ) { targetTab ->
                         when (targetTab) {
                             0 -> TodayScreen(ui, onOpen = { openId = it.id })
-                            1 -> PlaylistScreen(ui, vm, onOpen = { openId = it.id })
+                            1 -> QuranScreen(ui, onRead = { readingId = it.id })
+                            2 -> PlaylistScreen(ui, vm, onOpen = { openId = it.id })
                             else -> SettingsScreen(ui, vm)
                         }
                     }
@@ -192,6 +198,26 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
                 }
             }
 
+            // Mushaf page reader, same modal motion as the dua reader.
+            AnimatedContent(
+                targetState = readingSurah,
+                transitionSpec = {
+                    (slideInVertically(tween(380, easing = FastOutSlowInEasing)) { it / 4 } + fadeIn(tween(300)))
+                        .togetherWith(slideOutVertically(tween(300, easing = FastOutSlowInEasing)) { it / 4 } + fadeOut(tween(220)))
+                        .using(SizeTransform(clip = false))
+                },
+                label = "mushafTransition",
+            ) { surah ->
+                if (surah != null) {
+                    MushafReader(
+                        surah = surah,
+                        startPage = ui.lastPages[surah.id] ?: 0,
+                        onPageChange = { vm.setLastPage(surah.id, it) },
+                        onClose = { readingId = null },
+                    )
+                }
+            }
+
             if (sheetDua != null) {
                 DuaSheet(
                     dua = sheetDua,
@@ -210,7 +236,12 @@ private data class TabItem(val label: String, val icon: ImageVector)
 @Composable
 private fun BottomBar(selected: Int, visible: Boolean, onSelect: (Int) -> Unit) {
     val c = Tokens.colors
-    val items = listOf(TabItem("Today", Icons.Rounded.Home), TabItem("Playlist", Icons.AutoMirrored.Rounded.List), TabItem("Settings", Icons.Rounded.Settings))
+    val items = listOf(
+        TabItem("Today", Icons.Rounded.Home),
+        TabItem("Quran", AppIcons.Book),
+        TabItem("Playlist", AppIcons.Queue),
+        TabItem("Settings", Icons.Rounded.Settings),
+    )
     val barOffsetY by animateFloatAsState(
         targetValue = if (visible) 0f else 140f,
         animationSpec = spring(
@@ -274,9 +305,14 @@ private fun BottomBar(selected: Int, visible: Boolean, onSelect: (Int) -> Unit) 
                     animationSpec = tween(durationMillis = 240),
                     label = "tabContentTint",
                 )
+                val tabWeight by animateFloatAsState(
+                    targetValue = if (on) 1.9f else 1f,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
+                    label = "tabWeight",
+                )
                 Row(
                     Modifier
-                        .weight(1f)
+                        .weight(tabWeight)
                         .defaultMinSize(minHeight = 48.dp)
                         .graphicsLayer {
                             scaleX = tabScale
@@ -300,7 +336,7 @@ private fun BottomBar(selected: Int, visible: Boolean, onSelect: (Int) -> Unit) 
                 ) {
                     Icon(
                         item.icon,
-                        contentDescription = null,
+                        contentDescription = if (on) null else item.label,
                         tint = contentTint,
                         modifier = Modifier
                             .size(20.dp)
@@ -309,12 +345,16 @@ private fun BottomBar(selected: Int, visible: Boolean, onSelect: (Int) -> Unit) 
                                 scaleY = iconScale
                             },
                     )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        item.label.uppercase(),
-                        style = DuaType.label,
-                        color = contentTint,
-                    )
+                    AnimatedVisibility(
+                        visible = on,
+                        enter = fadeIn(tween(220)) + expandHorizontally(tween(260, easing = FastOutSlowInEasing)),
+                        exit = fadeOut(tween(140)) + shrinkHorizontally(tween(220, easing = FastOutSlowInEasing)),
+                    ) {
+                        Row {
+                            Spacer(Modifier.width(8.dp))
+                            Text(item.label.uppercase(), style = DuaType.label, color = contentTint, maxLines = 1)
+                        }
+                    }
                 }
             }
         }

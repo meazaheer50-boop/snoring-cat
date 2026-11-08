@@ -3,7 +3,13 @@ package com.dailydua.tracker.data
 enum class TimeOfDay { MORNING, EVENING, ANYTIME }
 
 /** One recited line, shown from [startMs] in the audio. */
-data class DuaLine(val startMs: Long, val arabic: String, val translation: String = "")
+data class DuaLine(
+    val startMs: Long,
+    val arabic: String,
+    val translation: String = "",
+    /** Step name shown above the line, for guides such as the Janazah prayer. */
+    val heading: String? = null,
+)
 
 data class Dua(
     val id: String,
@@ -26,62 +32,68 @@ data class Dua(
 object SampleDuas {
     val all = listOf(
         Dua(
-            id = "waking", title = "On waking", tag = "Morning", time = TimeOfDay.MORNING,
+            id = "waking", title = "Upon waking up", tag = "Alhamdu lillahil-ladhi ahyana", time = TimeOfDay.MORNING,
             arabic = "الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ",
             transliteration = "Alhamdu lillahil-ladhi ahyana ba’da ma amatana wa ilayhin-nushur",
             translation = "All praise is for Allah who gave us life after causing us to die, and to Him is the return.",
         ),
         Dua(
-            id = "leaving", title = "Leaving home", tag = "Morning", time = TimeOfDay.MORNING,
+            id = "leaving", title = "Leaving the house", tag = "Bismillah, tawakkaltu ʿala-llah", time = TimeOfDay.MORNING,
             arabic = "بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ",
             transliteration = "Bismillah, tawakkaltu ’alallah",
             translation = "In the name of Allah, I place my trust in Allah.",
         ),
         Dua(
-            id = "before-eating", title = "Before eating", tag = "Anytime", time = TimeOfDay.MORNING,
+            id = "before-eating", title = "Before eating", tag = "Bismillah", time = TimeOfDay.MORNING,
             arabic = "بِسْمِ اللَّهِ",
             transliteration = "Bismillah",
             translation = "In the name of Allah.",
         ),
         Dua(
-            id = "after-eating", title = "After eating", tag = "Anytime", time = TimeOfDay.EVENING,
+            id = "after-eating", title = "After eating", tag = "Alhamdulillah", time = TimeOfDay.EVENING,
             arabic = "الْحَمْدُ لِلَّهِ",
             transliteration = "Alhamdulillah",
             translation = "All praise is for Allah.",
         ),
         Dua(
-            id = "sleep", title = "Before sleep", tag = "Evening", time = TimeOfDay.EVENING,
+            id = "sleep", title = "Before sleeping", tag = "Bismika-llahumma amutu wa ahya", time = TimeOfDay.EVENING,
             arabic = "بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا",
             transliteration = "Bismika Allahumma amutu wa ahya",
             translation = "In Your name, O Allah, I die and I live.",
         ),
         Dua(
-            id = "qunoot", title = "Dua Qunoot", tag = "Sheikh Mishary Al-Afasy · 11 min", time = TimeOfDay.ANYTIME,
+            id = "qunoot", title = "Dua al-Qunoot", tag = "Mishary Al-Afasy · 11 min", time = TimeOfDay.ANYTIME,
             lines = QunootData.lines,
             audioAsset = "qunoot.mp3",
             source = "Text transcribed from a video of the dua. Not yet verified.",
-            category = "Recitations",
+            category = "Listen and follow along",
         ),
         Dua(
-            id = "khatm", title = "Dua Khatm al-Quran", tag = "Sheikh Mishary Al-Afasy · 17 min", time = TimeOfDay.ANYTIME,
+            id = "khatm", title = "Dua on completing the Quran", tag = "Mishary Al-Afasy · 17 min", time = TimeOfDay.ANYTIME,
             lines = KhatmData.lines,
             audioAsset = "khatm.mp3",
-            category = "Recitations",
+            category = "Listen and follow along",
             source = "Text from YouTube's automatic captions, without vowel marks; the English is an unverified draft translation. Not yet verified.",
         ),
         Dua(
-            id = "waqiah", title = "Surah Al-Waqi\u2019ah", tag = "Quran 56 \u00b7 14 min", time = TimeOfDay.ANYTIME,
+            id = "waqiah", title = "Surah Al-Waqi\u2019ah", tag = "Mishary Al-Afasy · 14 min · 96 verses", time = TimeOfDay.ANYTIME,
             lines = WaqiahData.lines,
             audioAsset = "waqiah.mp3",
-            category = "Recitations",
+            category = "Listen and follow along",
             source = "Arabic: Tanzil (Uthmani). English: Saheeh International. Verse start times were matched to the recording.",
         ),
         Dua(
-            id = "mulk", title = "Surah Al-Mulk", tag = "Quran 67 \u00b7 9 min", time = TimeOfDay.ANYTIME,
+            id = "mulk", title = "Surah Al-Mulk", tag = "Recitation · 9 min · 30 verses", time = TimeOfDay.ANYTIME,
             lines = MulkData.lines,
             audioAsset = "mulk.mp3",
-            category = "Recitations",
+            category = "Listen and follow along",
             source = "Arabic: Tanzil (Uthmani). English: Saheeh International. Verse start times were matched to the recording.",
+        ),
+        Dua(
+            id = "janazah", title = "Janazah prayer, step by step", tag = "4 takbirs · what to recite", time = TimeOfDay.ANYTIME,
+            lines = JanazahData.lines,
+            category = "Janazah prayer",
+            source = "The 3rd takbir duas follow the page you sent. Al-Fatiha from Tanzil. The other texts are written from memory (Bukhari 3370, Muslim 963). Scholars differ on some details; follow your local imam.",
         ),
     ) + MoreDuas.all
 }
