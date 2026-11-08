@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
@@ -104,7 +105,10 @@ class ScreenTour {
         step("short_dua") {
             scrollTo("Upon waking up")
             rule.onNodeWithText("Upon waking up").performClick()
+            rule.waitUntil(5000) { rule.onAllNodesWithText("Mark as done").fetchSemanticsNodes().isNotEmpty() }
             shot("06_short_dua_sheet")
+            rule.onNodeWithText("Mark as done").performScrollTo()
+            shot("06b_short_dua_sheet_bottom")
             back()
         }
         step("recitation") {
