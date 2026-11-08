@@ -107,8 +107,6 @@ class ScreenTour {
             rule.onNodeWithText("Upon waking up").performClick()
             rule.waitUntil(5000) { rule.onAllNodesWithText("Mark as done").fetchSemanticsNodes().isNotEmpty() }
             shot("06_short_dua_sheet")
-            rule.onNodeWithText("Mark as done").performScrollTo()
-            shot("06b_short_dua_sheet_bottom")
             back()
         }
         step("recitation") {
