@@ -1,18 +1,18 @@
 package com.dailydua.tracker.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
@@ -45,42 +46,42 @@ import com.dailydua.tracker.ui.theme.Tokens
 fun DuaApp(vm: DuaViewModel = viewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     DuaTheme(ui.settings.theme) {
-      Box(Modifier.fillMaxSize()) {
-        var tab by rememberSaveable { mutableStateOf(0) }
-        var openId by rememberSaveable { mutableStateOf<String?>(null) }
+        GlassBackground {
+            var tab by rememberSaveable { mutableStateOf(0) }
+            var openId by rememberSaveable { mutableStateOf<String?>(null) }
 
-        Scaffold(
-            containerColor = Tokens.colors.surface100,
-            bottomBar = { BottomBar(tab) { tab = it } },
-        ) { padding ->
-            Box(Modifier.padding(padding)) {
-                when (tab) {
-                    0 -> TodayScreen(ui, onOpen = { openId = it.id })
-                    else -> SettingsScreen(ui.settings, vm)
+            Scaffold(
+                containerColor = Color.Transparent,
+                bottomBar = { BottomBar(tab) { tab = it } },
+            ) { padding ->
+                Box(Modifier.fillMaxSize().padding(padding)) {
+                    when (tab) {
+                        0 -> TodayScreen(ui, onOpen = { openId = it.id })
+                        else -> SettingsScreen(ui.settings, vm)
+                    }
                 }
             }
-        }
 
-        SampleDuas.all.firstOrNull { it.id == openId }?.let { dua ->
-            if (dua.lines.isNotEmpty()) {
-                DuaReaderScreen(
+            SampleDuas.all.firstOrNull { it.id == openId }?.let { dua ->
+                if (dua.lines.isNotEmpty()) {
+                    DuaReaderScreen(
+                        dua = dua,
+                        done = dua.id in ui.doneToday,
+                        settings = ui.settings,
+                        onToggleDone = { vm.toggleDone(dua.id) },
+                        onClose = { openId = null },
+                    )
+                    return@let
+                }
+                DuaSheet(
                     dua = dua,
                     done = dua.id in ui.doneToday,
                     settings = ui.settings,
                     onToggleDone = { vm.toggleDone(dua.id) },
-                    onClose = { openId = null },
+                    onDismiss = { openId = null },
                 )
-                return@let
             }
-            DuaSheet(
-                dua = dua,
-                done = dua.id in ui.doneToday,
-                settings = ui.settings,
-                onToggleDone = { vm.toggleDone(dua.id) },
-                onDismiss = { openId = null },
-            )
         }
-      }
     }
 }
 
@@ -90,35 +91,65 @@ private data class TabItem(val label: String, val icon: ImageVector)
 private fun BottomBar(selected: Int, onSelect: (Int) -> Unit) {
     val c = Tokens.colors
     val items = listOf(TabItem("Today", Icons.Rounded.Home), TabItem("Settings", Icons.Rounded.Settings))
-    Row(
+    Box(
         Modifier
             .fillMaxWidth()
-            .background(c.surface200)
             .navigationBarsPadding()
-            .padding(top = 8.dp, bottom = 12.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        items.forEachIndexed { i, item ->
-            val on = i == selected
-            Column(
-                Modifier
-                    .defaultMinSize(minWidth = 72.dp, minHeight = 48.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .selectable(selected = on, role = Role.Tab, onClick = { onSelect(i) }),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Box(
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .glassSurface(
+                    shape = RoundedCornerShape(32.dp),
+                    variant = GlassVariant.ELEVATED,
+                    borderWidth = 1.dp,
+                )
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items.forEachIndexed { i, item ->
+                val on = i == selected
+                Row(
                     Modifier
-                        .size(width = 56.dp, height = 28.dp)
+                        .weight(1f)
+                        .defaultMinSize(minHeight = 48.dp)
                         .clip(CircleShape)
-                        .background(if (on) c.brandSoft else Color.Transparent),
-                    contentAlignment = Alignment.Center,
+                        .then(
+                            if (on) {
+                                Modifier
+                                    .background(
+                                        Brush.linearGradient(
+                                            colors = listOf(c.brand, c.brand.copy(alpha = 0.82f)),
+                                        ),
+                                        CircleShape,
+                                    )
+                                    .border(1.dp, c.glassBrandBorder, CircleShape)
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .selectable(selected = on, role = Role.Tab, onClick = { onSelect(i) })
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(item.icon, contentDescription = null, tint = if (on) c.brand else c.inkMuted, modifier = Modifier.size(22.dp))
+                    Icon(
+                        item.icon,
+                        contentDescription = null,
+                        tint = if (on) c.onBrand else c.inkMuted,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        item.label.uppercase(),
+                        style = DuaType.label,
+                        color = if (on) c.onBrand else c.inkMuted,
+                    )
                 }
-                Spacer(Modifier.height(4.dp))
-                Text(item.label.uppercase(), style = DuaType.label, color = if (on) c.brand else c.inkMuted)
             }
         }
     }
 }
+
