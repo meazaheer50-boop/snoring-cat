@@ -20,6 +20,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -46,6 +48,7 @@ fun DuaSheet(
     val sheetShape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = Color.Transparent,
         contentColor = c.ink,
         scrimColor = Color.Black.copy(alpha = 0.52f),
@@ -63,8 +66,6 @@ fun DuaSheet(
                     variant = GlassVariant.ELEVATED,
                     borderWidth = 1.dp,
                 )
-                .navigationBarsPadding()
-                .verticalScroll(rememberScrollState())
                 .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 20.dp),
         ) {
             Box(
@@ -95,6 +96,9 @@ fun DuaSheet(
                             variant = if (done) GlassVariant.SOFT_EMERALD else GlassVariant.FROST,
                         )
                         .animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))
+                        // Long duas scroll inside the card so the buttons stay on screen.
+                        .heightIn(max = 420.dp)
+                        .verticalScroll(rememberScrollState())
                         .padding(20.dp),
                 ) {
                     Text(
