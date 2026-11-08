@@ -1,5 +1,23 @@
 package com.dailydua.tracker.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -50,34 +69,119 @@ fun DuaApp(vm: DuaViewModel = viewModel()) {
             var tab by rememberSaveable { mutableStateOf(0) }
             var openId by rememberSaveable { mutableStateOf<String?>(null) }
 
+            val openDua = SampleDuas.all.firstOrNull { it.id == openId }
+            val readerDua = openDua?.takeIf { it.lines.isNotEmpty() }
+            val sheetDua = openDua?.takeIf { it.lines.isEmpty() }
+            val readerOpen = readerDua != null
+
+            // Navigate back from Settings tab to Today tab on system back press
+            BackHandler(enabled = tab != 0 && openId == null) {
+                tab = 0
+            }
+
+            // Layered depth effect on main scaffold when full-screen reader or sheet is active
+            val bgScale by animateFloatAsState(
+                targetValue = when {
+                    readerOpen -> 0.93f
+                    sheetDua != null -> 0.97f
+                    else -> 1f
+                },
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow,
+                ),
+                label = "scaffoldDepthScale",
+            )
+            val bgAlpha by animateFloatAsState(
+                targetValue = if (readerOpen) 0.35f else 1f,
+                animationSpec = tween(durationMillis = 320, easing = FastOutSlowInEasing),
+                label = "scaffoldDepthAlpha",
+            )
+
             Scaffold(
+                modifier = Modifier.graphicsLayer {
+                    scaleX = bgScale
+                    scaleY = bgScale
+                    alpha = bgAlpha
+                },
                 containerColor = Color.Transparent,
-                bottomBar = { BottomBar(tab) { tab = it } },
+                bottomBar = { BottomBar(selected = tab, visible = !readerOpen, onSelect = { tab = it }) },
             ) { padding ->
                 Box(Modifier.fillMaxSize().padding(padding)) {
-                    when (tab) {
-                        0 -> TodayScreen(ui, onOpen = { openId = it.id })
-                        else -> SettingsScreen(ui.settings, vm)
+                    AnimatedContent(
+                        targetState = tab,
+                        transitionSpec = {
+                            val forward = targetState > initialState
+                            val enterSlide = slideInHorizontally(
+                                animationSpec = tween(durationMillis = 340, easing = FastOutSlowInEasing),
+                            ) { fullWidth -> if (forward) fullWidth / 4 else -fullWidth / 4 }
+                            val exitSlide = slideOutHorizontally(
+                                animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+                            ) { fullWidth -> if (forward) -fullWidth / 5 else fullWidth / 5 }
+
+                            (enterSlide + fadeIn(tween(280)) + scaleIn(
+                                initialScale = 0.96f,
+                                animationSpec = tween(340, easing = FastOutSlowInEasing),
+                            )).togetherWith(
+                                exitSlide + fadeOut(tween(220)) + scaleOut(
+                                    targetScale = 0.96f,
+                                    animationSpec = tween(300, easing = FastOutSlowInEasing),
+                                ),
+                            ).using(SizeTransform(clip = false))
+                        },
+                        label = "tabNavigation",
+                    ) { targetTab ->
+                        when (targetTab) {
+                            0 -> TodayScreen(ui, onOpen = { openId = it.id })
+                            else -> SettingsScreen(ui.settings, vm)
+                        }
                     }
                 }
             }
 
-            SampleDuas.all.firstOrNull { it.id == openId }?.let { dua ->
-                if (dua.lines.isNotEmpty()) {
+            // Full-screen long dua reader with vertical modal slide + scale transition
+            AnimatedContent(
+                targetState = readerDua,
+                transitionSpec = {
+                    (slideInVertically(
+                        animationSpec = tween(durationMillis = 380, easing = FastOutSlowInEasing),
+                    ) { fullHeight -> fullHeight / 4 } +
+                        fadeIn(tween(durationMillis = 300)) +
+                        scaleIn(
+                            initialScale = 0.94f,
+                            animationSpec = tween(durationMillis = 380, easing = FastOutSlowInEasing),
+                        ))
+                        .togetherWith(
+                            slideOutVertically(
+                                animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+                            ) { fullHeight -> fullHeight / 4 } +
+                                fadeOut(tween(durationMillis = 220)) +
+                                scaleOut(
+                                    targetScale = 0.94f,
+                                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+                                ),
+                        )
+                        .using(SizeTransform(clip = false))
+                },
+                label = "duaReaderTransition",
+            ) { activeReaderDua ->
+                if (activeReaderDua != null) {
                     DuaReaderScreen(
-                        dua = dua,
-                        done = dua.id in ui.doneToday,
+                        dua = activeReaderDua,
+                        done = activeReaderDua.id in ui.doneToday,
                         settings = ui.settings,
-                        onToggleDone = { vm.toggleDone(dua.id) },
+                        onToggleDone = { vm.toggleDone(activeReaderDua.id) },
                         onClose = { openId = null },
                     )
-                    return@let
                 }
+            }
+
+            if (sheetDua != null) {
                 DuaSheet(
-                    dua = dua,
-                    done = dua.id in ui.doneToday,
+                    dua = sheetDua,
+                    done = sheetDua.id in ui.doneToday,
                     settings = ui.settings,
-                    onToggleDone = { vm.toggleDone(dua.id) },
+                    onToggleDone = { vm.toggleDone(sheetDua.id) },
                     onDismiss = { openId = null },
                 )
             }
@@ -88,14 +192,31 @@ fun DuaApp(vm: DuaViewModel = viewModel()) {
 private data class TabItem(val label: String, val icon: ImageVector)
 
 @Composable
-private fun BottomBar(selected: Int, onSelect: (Int) -> Unit) {
+private fun BottomBar(selected: Int, visible: Boolean, onSelect: (Int) -> Unit) {
     val c = Tokens.colors
     val items = listOf(TabItem("Today", Icons.Rounded.Home), TabItem("Settings", Icons.Rounded.Settings))
+    val barOffsetY by animateFloatAsState(
+        targetValue = if (visible) 0f else 140f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "bottomBarOffsetY",
+    )
+    val barAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(durationMillis = 240),
+        label = "bottomBarAlpha",
+    )
     Box(
         Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 24.dp, vertical = 12.dp),
+            .padding(horizontal = 24.dp, vertical = 12.dp)
+            .graphicsLayer {
+                translationY = barOffsetY
+                alpha = barAlpha
+            },
         contentAlignment = Alignment.Center,
     ) {
         Row(
@@ -111,25 +232,51 @@ private fun BottomBar(selected: Int, onSelect: (Int) -> Unit) {
         ) {
             items.forEachIndexed { i, item ->
                 val on = i == selected
+                val pillAlpha by animateFloatAsState(
+                    targetValue = if (on) 1f else 0f,
+                    animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+                    label = "tabPillAlpha",
+                )
+                val tabScale by animateFloatAsState(
+                    targetValue = if (on) 1f else 0.95f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium,
+                    ),
+                    label = "tabScale",
+                )
+                val iconScale by animateFloatAsState(
+                    targetValue = if (on) 1.14f else 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium,
+                    ),
+                    label = "tabIconScale",
+                )
+                val contentTint by animateColorAsState(
+                    targetValue = if (on) c.onBrand else c.inkMuted,
+                    animationSpec = tween(durationMillis = 240),
+                    label = "tabContentTint",
+                )
                 Row(
                     Modifier
                         .weight(1f)
                         .defaultMinSize(minHeight = 48.dp)
+                        .graphicsLayer {
+                            scaleX = tabScale
+                            scaleY = tabScale
+                        }
                         .clip(CircleShape)
-                        .then(
-                            if (on) {
-                                Modifier
-                                    .background(
-                                        Brush.linearGradient(
-                                            colors = listOf(c.brand, c.brand.copy(alpha = 0.82f)),
-                                        ),
-                                        CircleShape,
-                                    )
-                                    .border(1.dp, c.glassBrandBorder, CircleShape)
-                            } else {
-                                Modifier
-                            },
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    c.brand.copy(alpha = pillAlpha),
+                                    c.brand.copy(alpha = 0.82f * pillAlpha),
+                                ),
+                            ),
+                            CircleShape,
                         )
+                        .border(1.dp, c.glassBrandBorder.copy(alpha = pillAlpha), CircleShape)
                         .selectable(selected = on, role = Role.Tab, onClick = { onSelect(i) })
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.Center,
@@ -138,14 +285,19 @@ private fun BottomBar(selected: Int, onSelect: (Int) -> Unit) {
                     Icon(
                         item.icon,
                         contentDescription = null,
-                        tint = if (on) c.onBrand else c.inkMuted,
-                        modifier = Modifier.size(20.dp),
+                        tint = contentTint,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .graphicsLayer {
+                                scaleX = iconScale
+                                scaleY = iconScale
+                            },
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
                         item.label.uppercase(),
                         style = DuaType.label,
-                        color = if (on) c.onBrand else c.inkMuted,
+                        color = contentTint,
                     )
                 }
             }

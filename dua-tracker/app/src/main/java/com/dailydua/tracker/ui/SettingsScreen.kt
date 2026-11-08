@@ -1,5 +1,16 @@
 package com.dailydua.tracker.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -32,88 +44,127 @@ private val sizeOptions = listOf("Small" to 26, "Medium" to 32, "Large" to 40)
 @Composable
 fun SettingsScreen(settings: Settings, vm: DuaViewModel) {
     val c = Tokens.colors
+    val animatedArabicSize by animateIntAsState(
+        targetValue = settings.arabicSize,
+        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+        label = "previewArabicSize",
+    )
+
     Column(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 24.dp),
     ) {
-        Text("Make it yours", style = DuaType.caption, color = c.inkMuted)
-        Text("Settings", style = DuaType.displayMd, color = c.ink)
-
-        Group("Appearance") {
-            Padded {
-                Segmented(
-                    options = listOf("System", "Light", "Dark"),
-                    selected = settings.theme.ordinal,
-                    onSelect = { vm.setTheme(ThemeMode.entries[it]) },
-                )
+        StaggeredEntrance(index = 0) {
+            Column {
+                Text("Make it yours", style = DuaType.caption, color = c.inkMuted)
+                Text("Settings", style = DuaType.displayMd, color = c.ink)
             }
         }
 
-        Group("Reminders") {
-            SwitchRow("Morning reminder", "6:30 AM", settings.morningReminder, vm::setMorningReminder)
-            HorizontalDivider(color = c.hairline)
-            SwitchRow("Evening reminder", "6:00 PM", settings.eveningReminder, vm::setEveningReminder)
-        }
-        Text(
-            "Your choice is saved. Notifications arrive in a later update.",
-            style = DuaType.caption,
-            color = c.inkMuted,
-            modifier = Modifier.padding(top = 8.dp, start = 4.dp),
-        )
-
-        Group("Reading") {
-            Padded {
-                Text(
-                    "Arabic text size",
-                    style = DuaType.body.copy(fontWeight = FontWeight.SemiBold),
-                    color = c.ink,
-                )
-                Spacer(Modifier.height(10.dp))
-                Segmented(
-                    options = sizeOptions.map { it.first },
-                    selected = sizeOptions.indexOfFirst { it.second == settings.arabicSize }.coerceAtLeast(0),
-                    onSelect = { vm.setArabicSize(sizeOptions[it].second) },
-                )
+        StaggeredEntrance(index = 1) {
+            Column {
+                Group("Appearance") {
+                    Padded {
+                        Segmented(
+                            options = listOf("System", "Light", "Dark"),
+                            selected = settings.theme.ordinal,
+                            onSelect = { vm.setTheme(ThemeMode.entries[it]) },
+                        )
+                    }
+                }
             }
-            HorizontalDivider(color = c.hairline)
-            SwitchRow("Show transliteration", null, settings.showTransliteration, vm::setShowTransliteration)
-            HorizontalDivider(color = c.hairline)
-            SwitchRow("Show translation", null, settings.showTranslation, vm::setShowTranslation)
         }
 
-        SectionLabel("Live Preview", Modifier.padding(top = 24.dp, bottom = 8.dp))
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .glassSurface(
-                    shape = RoundedCornerShape(24.dp),
-                    variant = GlassVariant.SOFT_EMERALD,
-                )
-                .padding(20.dp),
-        ) {
-            Text(
-                "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
-                style = DuaType.arabic(settings.arabicSize),
-                color = c.ink,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            if (settings.showTransliteration) {
-                Spacer(Modifier.height(10.dp))
+        StaggeredEntrance(index = 2) {
+            Column {
+                Group("Reminders") {
+                    SwitchRow("Morning reminder", "6:30 AM", settings.morningReminder, vm::setMorningReminder)
+                    HorizontalDivider(color = c.hairline)
+                    SwitchRow("Evening reminder", "6:00 PM", settings.eveningReminder, vm::setEveningReminder)
+                }
                 Text(
-                    "Bismillahir-Rahmanir-Rahim",
-                    style = DuaType.body.copy(fontStyle = FontStyle.Italic),
+                    "Your choice is saved. Notifications arrive in a later update.",
+                    style = DuaType.caption,
                     color = c.inkMuted,
+                    modifier = Modifier.padding(top = 8.dp, start = 4.dp),
                 )
             }
-            if (settings.showTranslation) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "In the name of Allah, the Entirely Merciful, the Especially Merciful.",
-                    style = DuaType.body,
-                    color = c.ink,
-                )
+        }
+
+        StaggeredEntrance(index = 3) {
+            Column {
+                Group("Reading") {
+                    Padded {
+                        Text(
+                            "Arabic text size",
+                            style = DuaType.body.copy(fontWeight = FontWeight.SemiBold),
+                            color = c.ink,
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        Segmented(
+                            options = sizeOptions.map { it.first },
+                            selected = sizeOptions.indexOfFirst { it.second == settings.arabicSize }.coerceAtLeast(0),
+                            onSelect = { vm.setArabicSize(sizeOptions[it].second) },
+                        )
+                    }
+                    HorizontalDivider(color = c.hairline)
+                    SwitchRow("Show transliteration", null, settings.showTransliteration, vm::setShowTransliteration)
+                    HorizontalDivider(color = c.hairline)
+                    SwitchRow("Show translation", null, settings.showTranslation, vm::setShowTranslation)
+                }
+            }
+        }
+
+        StaggeredEntrance(index = 4) {
+            Column {
+                SectionLabel("Live Preview", Modifier.padding(top = 24.dp, bottom = 8.dp))
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .glassSurface(
+                            shape = RoundedCornerShape(24.dp),
+                            variant = GlassVariant.SOFT_EMERALD,
+                        )
+                        .animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))
+                        .padding(20.dp),
+                ) {
+                    Text(
+                        "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+                        style = DuaType.arabic(animatedArabicSize),
+                        color = c.ink,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    AnimatedVisibility(
+                        visible = settings.showTransliteration,
+                        enter = fadeIn(tween(240)) + expandVertically(tween(240)),
+                        exit = fadeOut(tween(180)) + shrinkVertically(tween(180)),
+                    ) {
+                        Column {
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                "Bismillahir-Rahmanir-Rahim",
+                                style = DuaType.body.copy(fontStyle = FontStyle.Italic),
+                                color = c.inkMuted,
+                            )
+                        }
+                    }
+                    AnimatedVisibility(
+                        visible = settings.showTranslation,
+                        enter = fadeIn(tween(240)) + expandVertically(tween(240)),
+                        exit = fadeOut(tween(180)) + shrinkVertically(tween(180)),
+                    ) {
+                        Column {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                "In the name of Allah, the Entirely Merciful, the Especially Merciful.",
+                                style = DuaType.body,
+                                color = c.ink,
+                            )
+                        }
+                    }
+                }
             }
         }
     }

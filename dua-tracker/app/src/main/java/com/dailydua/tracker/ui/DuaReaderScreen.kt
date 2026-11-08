@@ -1,9 +1,30 @@
 package com.dailydua.tracker.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +65,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -111,7 +133,7 @@ fun DuaReaderScreen(
                     Modifier
                         .size(42.dp)
                         .glassSurface(shape = CircleShape, variant = GlassVariant.FROST)
-                        .clickable(role = Role.Button, onClickLabel = "Back", onClick = onClose),
+                        .bounceClick(pressedScale = 0.92f, role = Role.Button, onClickLabel = "Back", onClick = onClose),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = c.ink)
@@ -131,24 +153,43 @@ fun DuaReaderScreen(
                             shape = CircleShape,
                             variant = if (done) GlassVariant.SOFT_EMERALD else GlassVariant.FROST,
                         )
-                        .clickable(role = Role.Button, onClick = onToggleDone)
+                        .bounceClick(pressedScale = 0.94f, role = Role.Button, onClick = onToggleDone)
                         .padding(horizontal = 14.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (done) {
-                        Icon(
-                            Icons.Rounded.Check,
-                            contentDescription = null,
-                            tint = c.brand,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
+                    AnimatedVisibility(
+                        visible = done,
+                        enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy)) +
+                            fadeIn(tween(180)) +
+                            expandHorizontally(tween(180)),
+                        exit = scaleOut(tween(140)) +
+                            fadeOut(tween(140)) +
+                            shrinkHorizontally(tween(140)),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Rounded.Check,
+                                contentDescription = null,
+                                tint = c.brand,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                        }
                     }
-                    Text(
-                        if (done) "Done" else "Mark done",
-                        style = DuaType.caption.copy(fontWeight = FontWeight.Bold),
-                        color = c.brand,
-                    )
+                    AnimatedContent(
+                        targetState = if (done) "Done" else "Mark done",
+                        transitionSpec = {
+                            (slideInVertically { it / 2 } + fadeIn(tween(200)))
+                                .togetherWith(slideOutVertically { -it / 2 } + fadeOut(tween(150)))
+                        },
+                        label = "readerDoneText",
+                    ) { label ->
+                        Text(
+                            label,
+                            style = DuaType.caption.copy(fontWeight = FontWeight.Bold),
+                            color = c.brand,
+                        )
+                    }
                 }
             }
 
@@ -158,7 +199,7 @@ fun DuaReaderScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                item {
+                item(key = "reader_banner") {
                     Column(
                         Modifier
                             .fillMaxWidth()
@@ -180,21 +221,47 @@ fun DuaReaderScreen(
                         dua.source?.let { Text(it, style = DuaType.caption, color = c.inkMuted) }
                     }
                 }
-                itemsIndexed(dua.lines) { i, line ->
+                itemsIndexed(dua.lines, key = { i, _ -> i }) { i, line ->
                     val active = i == current
+                    val cardScale by animateFloatAsState(
+                        targetValue = if (active) 1.015f else 1f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMediumLow,
+                        ),
+                        label = "verseCardScale",
+                    )
+                    val chipBg by animateColorAsState(
+                        targetValue = if (active) c.brand.copy(alpha = 0.22f) else c.hairline,
+                        animationSpec = tween(280),
+                        label = "verseChipBg",
+                    )
+                    val chipInk by animateColorAsState(
+                        targetValue = if (active) c.brand else c.inkMuted,
+                        animationSpec = tween(280),
+                        label = "verseChipInk",
+                    )
                     Column(
                         Modifier
                             .fillMaxWidth()
+                            .graphicsLayer {
+                                scaleX = cardScale
+                                scaleY = cardScale
+                            }
                             .glassSurface(
                                 shape = RoundedCornerShape(22.dp),
                                 variant = if (active) GlassVariant.SOFT_EMERALD else GlassVariant.FROST,
                                 borderWidth = if (active) 1.5.dp else 1.dp,
                             )
-                            .clickable(enabled = player.available) {
+                            .bounceClick(
+                                pressedScale = 0.98f,
+                                enabled = player.available,
+                            ) {
                                 started = true
                                 player.seekTo(line.startMs.toInt())
                                 player.play()
                             }
+                            .animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))
                             .padding(18.dp),
                     ) {
                         Row(
@@ -205,21 +272,34 @@ fun DuaReaderScreen(
                             Box(
                                 Modifier
                                     .clip(CircleShape)
-                                    .background(if (active) c.brand.copy(alpha = 0.22f) else c.hairline)
+                                    .background(chipBg)
                                     .padding(horizontal = 10.dp, vertical = 3.dp),
                             ) {
                                 Text(
                                     "${i + 1} · ${clock(line.startMs.toInt())}",
                                     style = DuaType.label,
-                                    color = if (active) c.brand else c.inkMuted,
+                                    color = chipInk,
                                 )
                             }
-                            if (active) {
-                                Text(
-                                    "RECITING",
-                                    style = DuaType.label,
-                                    color = c.brand,
-                                )
+                            AnimatedVisibility(
+                                visible = active,
+                                enter = fadeIn(tween(240)) + scaleIn(
+                                    initialScale = 0.85f,
+                                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                ),
+                                exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.85f, animationSpec = tween(180)),
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    RecitingEqualizer(playing = playing)
+                                    Text(
+                                        "RECITING",
+                                        style = DuaType.label,
+                                        color = c.brand,
+                                    )
+                                }
                             }
                         }
                         Spacer(Modifier.height(10.dp))
@@ -235,7 +315,7 @@ fun DuaReaderScreen(
                         }
                     }
                 }
-                item { Spacer(Modifier.height(16.dp)) }
+                item(key = "bottom_spacer") { Spacer(Modifier.height(16.dp)) }
             }
 
             if (player.available) {
@@ -280,35 +360,141 @@ fun DuaReaderScreen(
     }
 }
 
+/** 3-bar mini equalizer indicator that animates when recitation audio is actively playing. */
+@Composable
+private fun RecitingEqualizer(playing: Boolean) {
+    val c = Tokens.colors
+    val infinite = rememberInfiniteTransition(label = "equalizer")
+    val bar1 by infinite.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 380, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "eqBar1",
+    )
+    val bar2 by infinite.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.30f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 310, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "eqBar2",
+    )
+    val bar3 by infinite.animateFloat(
+        initialValue = 0.45f,
+        targetValue = 0.95f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 440, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "eqBar3",
+    )
+    val heights = if (playing) listOf(bar1, bar2, bar3) else listOf(0.4f, 0.65f, 0.4f)
+    Row(
+        modifier = Modifier.height(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        heights.forEach { frac ->
+            Box(
+                Modifier
+                    .width(3.dp)
+                    .height((14f * frac).dp)
+                    .clip(CircleShape)
+                    .background(c.brand),
+            )
+        }
+    }
+}
+
 @Composable
 private fun PlayButton(playing: Boolean, onClick: () -> Unit) {
     val c = Tokens.colors
-    Box(
-        Modifier
-            .size(56.dp)
-            .clip(CircleShape)
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(c.brand, c.brand.copy(alpha = 0.80f)),
+    val infinite = rememberInfiniteTransition(label = "playHalo")
+    val haloScale by infinite.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.22f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "haloScale",
+    )
+    val haloAlpha by animateFloatAsState(
+        targetValue = if (playing) 0.26f else 0f,
+        animationSpec = tween(durationMillis = 300),
+        label = "haloAlpha",
+    )
+    Box(contentAlignment = Alignment.Center) {
+        Box(
+            Modifier
+                .size(56.dp)
+                .graphicsLayer {
+                    scaleX = if (playing) haloScale else 1f
+                    scaleY = if (playing) haloScale else 1f
+                    alpha = haloAlpha
+                }
+                .clip(CircleShape)
+                .background(c.brand),
+        )
+        Box(
+            Modifier
+                .size(56.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(c.brand, c.brand.copy(alpha = 0.80f)),
+                    ),
+                )
+                .border(1.dp, c.glassBrandBorder, CircleShape)
+                .bounceClick(
+                    pressedScale = 0.90f,
+                    role = Role.Button,
+                    onClickLabel = if (playing) "Pause" else "Play",
+                    onClick = onClick,
                 ),
-            )
-            .border(1.dp, c.glassBrandBorder, CircleShape)
-            .clickable(role = Role.Button, onClickLabel = if (playing) "Pause" else "Play", onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (playing) {
-            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                repeat(2) {
-                    Box(
-                        Modifier
-                            .size(width = 6.dp, height = 20.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(c.onBrand),
+            contentAlignment = Alignment.Center,
+        ) {
+            AnimatedContent(
+                targetState = playing,
+                transitionSpec = {
+                    (scaleIn(
+                        initialScale = 0.65f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium,
+                        ),
+                    ) + fadeIn(tween(180)))
+                        .togetherWith(
+                            scaleOut(targetScale = 0.65f, animationSpec = tween(140)) +
+                                fadeOut(tween(140)),
+                        )
+                },
+                label = "playPauseIcon",
+            ) { isPlaying ->
+                if (isPlaying) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        repeat(2) {
+                            Box(
+                                Modifier
+                                    .size(width = 6.dp, height = 20.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(c.onBrand),
+                            )
+                        }
+                    }
+                } else {
+                    Icon(
+                        Icons.Rounded.PlayArrow,
+                        contentDescription = null,
+                        tint = c.onBrand,
+                        modifier = Modifier.size(30.dp),
                     )
                 }
             }
-        } else {
-            Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = c.onBrand, modifier = Modifier.size(30.dp))
         }
     }
 }

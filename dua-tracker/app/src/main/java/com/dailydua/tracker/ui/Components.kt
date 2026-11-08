@@ -1,10 +1,35 @@
 package com.dailydua.tracker.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -27,7 +52,11 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +65,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -44,6 +74,7 @@ import androidx.compose.ui.unit.dp
 import com.dailydua.tracker.data.Dua
 import com.dailydua.tracker.ui.theme.DuaType
 import com.dailydua.tracker.ui.theme.Tokens
+import kotlinx.coroutines.delay
 
 enum class GlassVariant {
     FROST,
@@ -53,6 +84,75 @@ enum class GlassVariant {
     ELEVATED,
 }
 
+/** Tactile spring press-scale modifier for interactive glass surfaces and buttons. */
+@Composable
+fun Modifier.bounceClick(
+    pressedScale: Float = 0.96f,
+    enabled: Boolean = true,
+    role: Role? = null,
+    onClickLabel: String? = null,
+    onClick: () -> Unit,
+): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) pressedScale else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "bounceClickScale",
+    )
+    return this
+        .graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        }
+        .clickable(
+            interactionSource = interactionSource,
+            indication = null,
+            enabled = enabled,
+            role = role,
+            onClickLabel = onClickLabel,
+            onClick = onClick,
+        )
+}
+
+/** Staggered entrance animation wrapper that fades and slides items upward into place. */
+@Composable
+fun StaggeredEntrance(
+    index: Int,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay((index.coerceIn(0, 10) * 38L))
+        visible = true
+    }
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing),
+        label = "staggerAlpha",
+    )
+    val offsetY by animateFloatAsState(
+        targetValue = if (visible) 0f else 28f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessLow,
+        ),
+        label = "staggerOffsetY",
+    )
+    Box(
+        modifier.graphicsLayer {
+            this.alpha = alpha
+            translationY = offsetY
+        },
+    ) {
+        content()
+    }
+}
+
 @Composable
 fun Modifier.glassSurface(
     shape: Shape = RoundedCornerShape(24.dp),
@@ -60,7 +160,7 @@ fun Modifier.glassSurface(
     borderWidth: Dp = 1.dp,
 ): Modifier {
     val c = Tokens.colors
-    val (fillTop, fillBottom, borderTop, borderBottom) = when (variant) {
+    val (targetFillTop, targetFillBottom, targetBorderTop, targetBorderBottom) = when (variant) {
         GlassVariant.FROST -> listOf(c.glassFillTop, c.glassFillBottom, c.glassBorderTop, c.glassBorderBottom)
         GlassVariant.SOFT_EMERALD -> listOf(
             c.brandSoft,
@@ -87,6 +187,17 @@ fun Modifier.glassSurface(
             c.glassBorderBottom,
         )
     }
+    val colorSpec = tween<Color>(durationMillis = 360, easing = FastOutSlowInEasing)
+    val fillTop by animateColorAsState(targetFillTop, colorSpec, label = "glassFillTop")
+    val fillBottom by animateColorAsState(targetFillBottom, colorSpec, label = "glassFillBottom")
+    val borderTop by animateColorAsState(targetBorderTop, colorSpec, label = "glassBorderTop")
+    val borderBottom by animateColorAsState(targetBorderBottom, colorSpec, label = "glassBorderBottom")
+    val animatedBorderWidth by animateDpAsState(
+        targetValue = borderWidth,
+        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+        label = "glassBorderWidth",
+    )
+
     return this
         .clip(shape)
         .background(
@@ -98,7 +209,7 @@ fun Modifier.glassSurface(
             shape = shape,
         )
         .border(
-            width = borderWidth,
+            width = animatedBorderWidth,
             brush = Brush.linearGradient(
                 colors = listOf(borderTop, borderBottom),
                 start = Offset(0f, 0f),
@@ -108,16 +219,49 @@ fun Modifier.glassSurface(
         )
 }
 
-/** Ambient multi-orb background that gives translucent glass surfaces depth and refraction. */
+/** Ambient multi-orb background with gentle breathing motion that gives translucent glass surfaces living depth. */
 @Composable
 fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
     val c = Tokens.colors
+    val infinite = rememberInfiniteTransition(label = "ambientOrbs")
+    val driftA by infinite.animateFloat(
+        initialValue = -1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 10500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "driftA",
+    )
+    val driftB by infinite.animateFloat(
+        initialValue = 1f,
+        targetValue = -1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 13500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "driftB",
+    )
+    val pulse by infinite.animateFloat(
+        initialValue = 0.94f,
+        targetValue = 1.07f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 8500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "orbPulse",
+    )
+
+    val bgTop by animateColorAsState(c.surface100, tween(450), label = "bgTop")
+    val bgMid by animateColorAsState(c.bgMid, tween(450), label = "bgMid")
+    val bgBot by animateColorAsState(c.surface200, tween(450), label = "bgBot")
+
     Box(
         Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(c.surface100, c.bgMid, c.surface200),
+                    colors = listOf(bgTop, bgMid, bgBot),
                 ),
             ),
     ) {
@@ -126,61 +270,66 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
             val h = size.height
 
             // Top-right warm golden lantern aura
+            val goldCenter = Offset(w * (0.88f + 0.04f * driftA), h * (0.10f + 0.03f * driftB))
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(c.orbSecondary, Color.Transparent),
-                    center = Offset(w * 0.88f, h * 0.10f),
-                    radius = w * 0.72f,
+                    center = goldCenter,
+                    radius = w * 0.72f * pulse,
                 ),
-                radius = w * 0.72f,
-                center = Offset(w * 0.88f, h * 0.10f),
+                radius = w * 0.72f * pulse,
+                center = goldCenter,
             )
 
             // Upper-left emerald aura
+            val emeraldTopCenter = Offset(w * (0.12f + 0.05f * driftB), h * (0.24f + 0.03f * driftA))
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(c.orbPrimary, Color.Transparent),
-                    center = Offset(w * 0.12f, h * 0.24f),
+                    center = emeraldTopCenter,
                     radius = w * 0.78f,
                 ),
                 radius = w * 0.78f,
-                center = Offset(w * 0.12f, h * 0.24f),
+                center = emeraldTopCenter,
             )
 
             // Center-right aqua mist orb
+            val aquaCenter = Offset(w * (0.92f + 0.04f * driftA), h * (0.56f + 0.04f * driftB))
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(c.orbTertiary, Color.Transparent),
-                    center = Offset(w * 0.92f, h * 0.56f),
-                    radius = w * 0.68f,
+                    center = aquaCenter,
+                    radius = w * 0.68f * pulse,
                 ),
-                radius = w * 0.68f,
-                center = Offset(w * 0.92f, h * 0.56f),
+                radius = w * 0.68f * pulse,
+                center = aquaCenter,
             )
 
             // Bottom-left deep emerald glow behind floating dock
+            val emeraldBottomCenter = Offset(w * (0.22f + 0.05f * driftB), h * (0.88f + 0.02f * driftA))
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(c.orbPrimary, Color.Transparent),
-                    center = Offset(w * 0.22f, h * 0.88f),
+                    center = emeraldBottomCenter,
                     radius = w * 0.75f,
                 ),
                 radius = w * 0.75f,
-                center = Offset(w * 0.22f, h * 0.88f),
+                center = emeraldBottomCenter,
             )
 
             // Subtle celestial geometric light rings in top-right
             val ringColor = c.glassBorderTop.copy(alpha = if (c.isDark) 0.07f else 0.22f)
+            val ringCenter = Offset(w * (0.86f + 0.015f * driftA), h * (0.08f + 0.01f * driftB))
             drawCircle(
                 color = ringColor,
-                radius = w * 0.34f,
-                center = Offset(w * 0.86f, h * 0.08f),
+                radius = w * 0.34f * pulse,
+                center = ringCenter,
                 style = Stroke(width = 1.dp.toPx()),
             )
             drawCircle(
                 color = ringColor,
-                radius = w * 0.46f,
-                center = Offset(w * 0.86f, h * 0.08f),
+                radius = w * (0.46f / pulse),
+                center = ringCenter,
                 style = Stroke(width = 1.dp.toPx()),
             )
         }
@@ -204,7 +353,17 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier, badge: String? = n
                     .padding(horizontal = 10.dp, vertical = 3.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(badge, style = DuaType.label, color = c.brand)
+                AnimatedContent(
+                    targetState = badge,
+                    transitionSpec = {
+                        (slideInVertically { it / 2 } + fadeIn(tween(220)))
+                            .togetherWith(slideOutVertically { -it / 2 } + fadeOut(tween(180)))
+                            .using(SizeTransform(clip = false))
+                    },
+                    label = "sectionBadge",
+                ) { targetBadge ->
+                    Text(targetBadge, style = DuaType.label, color = c.brand)
+                }
             }
         }
     }
@@ -213,29 +372,54 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier, badge: String? = n
 @Composable
 fun CheckCircle(done: Boolean) {
     val c = Tokens.colors
+    val scale by animateFloatAsState(
+        targetValue = if (done) 1f else 0.92f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "checkScale",
+    )
+    val bgTop by animateColorAsState(
+        targetValue = if (done) c.brand else c.glassFillTop,
+        animationSpec = tween(280),
+        label = "checkBgTop",
+    )
+    val bgBot by animateColorAsState(
+        targetValue = if (done) c.brand.copy(alpha = 0.78f) else c.glassFillBottom,
+        animationSpec = tween(280),
+        label = "checkBgBot",
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (done) c.glassBrandBorder else c.border,
+        animationSpec = tween(280),
+        label = "checkBorder",
+    )
     Box(
         Modifier
             .size(36.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(CircleShape)
-            .then(
-                if (done) {
-                    Modifier
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(c.brand, c.brand.copy(alpha = 0.78f)),
-                            ),
-                            CircleShape,
-                        )
-                        .border(1.dp, c.glassBrandBorder, CircleShape)
-                } else {
-                    Modifier
-                        .background(c.glassFillTop, CircleShape)
-                        .border(1.5.dp, c.border, CircleShape)
-                },
-            ),
+            .background(
+                Brush.linearGradient(colors = listOf(bgTop, bgBot)),
+                CircleShape,
+            )
+            .border(if (done) 1.dp else 1.5.dp, borderColor, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        if (done) {
+        AnimatedVisibility(
+            visible = done,
+            enter = scaleIn(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium,
+                ),
+            ) + fadeIn(tween(180)),
+            exit = scaleOut(tween(150)) + fadeOut(tween(150)),
+        ) {
             Icon(Icons.Rounded.Check, contentDescription = null, tint = c.onBrand, modifier = Modifier.size(18.dp))
         }
     }
@@ -253,7 +437,7 @@ fun DuaRow(dua: Dua, done: Boolean, onClick: () -> Unit) {
                 shape = RoundedCornerShape(24.dp),
                 variant = if (done) GlassVariant.SOFT_EMERALD else GlassVariant.FROST,
             )
-            .clickable(onClick = onClick)
+            .bounceClick(pressedScale = 0.97f, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -274,7 +458,11 @@ fun DuaRow(dua: Dua, done: Boolean, onClick: () -> Unit) {
                 ) {
                     Text(dua.tag, style = DuaType.caption, color = c.inkMuted)
                 }
-                if (done) {
+                AnimatedVisibility(
+                    visible = done,
+                    enter = fadeIn(tween(220)) + expandHorizontally(tween(220)),
+                    exit = fadeOut(tween(160)) + shrinkHorizontally(tween(160)),
+                ) {
                     Text("· Done", style = DuaType.caption.copy(fontWeight = FontWeight.SemiBold), color = c.brand)
                 }
             }
@@ -311,10 +499,19 @@ fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
                 ),
             )
             .border(1.dp, c.glassBrandBorder, CircleShape)
-            .clickable(role = Role.Button, onClick = onClick),
+            .bounceClick(pressedScale = 0.96f, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, style = DuaType.body.copy(fontWeight = FontWeight.Bold), color = c.onBrand)
+        AnimatedContent(
+            targetState = text,
+            transitionSpec = {
+                (fadeIn(tween(200)) + slideInVertically { it / 3 })
+                    .togetherWith(fadeOut(tween(150)) + slideOutVertically { -it / 3 })
+            },
+            label = "primaryButtonText",
+        ) { targetText ->
+            Text(targetText, style = DuaType.body.copy(fontWeight = FontWeight.Bold), color = c.onBrand)
+        }
     }
 }
 
@@ -326,14 +523,14 @@ fun OutlinedButton(text: String, onClick: () -> Unit, modifier: Modifier = Modif
             .fillMaxWidth()
             .heightIn(min = 54.dp)
             .glassSurface(shape = CircleShape, variant = GlassVariant.FROST)
-            .clickable(role = Role.Button, onClick = onClick),
+            .bounceClick(pressedScale = 0.96f, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(text, style = DuaType.body.copy(fontWeight = FontWeight.Bold), color = c.brand)
     }
 }
 
-/** Pill-shaped glassmorphic segmented selector. */
+/** Pill-shaped glassmorphic segmented selector with animated selection state. */
 @Composable
 fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     val c = Tokens.colors
@@ -346,32 +543,50 @@ fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     ) {
         options.forEachIndexed { i, label ->
             val on = i == selected
+            val pillAlpha by animateFloatAsState(
+                targetValue = if (on) 1f else 0f,
+                animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+                label = "segmentPillAlpha",
+            )
+            val pillScale by animateFloatAsState(
+                targetValue = if (on) 1f else 0.95f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium,
+                ),
+                label = "segmentPillScale",
+            )
+            val textColor by animateColorAsState(
+                targetValue = if (on) c.onBrand else c.ink,
+                animationSpec = tween(220),
+                label = "segmentTextColor",
+            )
             Box(
                 Modifier
                     .weight(1f)
                     .heightIn(min = 44.dp)
+                    .graphicsLayer {
+                        scaleX = pillScale
+                        scaleY = pillScale
+                    }
                     .clip(CircleShape)
-                    .then(
-                        if (on) {
-                            Modifier
-                                .background(
-                                    Brush.linearGradient(
-                                        colors = listOf(c.brand, c.brand.copy(alpha = 0.85f)),
-                                    ),
-                                    CircleShape,
-                                )
-                                .border(1.dp, c.glassBrandBorder, CircleShape)
-                        } else {
-                            Modifier
-                        },
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                c.brand.copy(alpha = pillAlpha),
+                                c.brand.copy(alpha = 0.85f * pillAlpha),
+                            ),
+                        ),
+                        CircleShape,
                     )
+                    .border(1.dp, c.glassBrandBorder.copy(alpha = pillAlpha), CircleShape)
                     .selectable(selected = on, role = Role.RadioButton, onClick = { onSelect(i) }),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     label,
                     style = DuaType.body.copy(fontWeight = FontWeight.SemiBold),
-                    color = if (on) c.onBrand else c.ink,
+                    color = textColor,
                     textAlign = TextAlign.Center,
                 )
             }
@@ -379,34 +594,49 @@ fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     }
 }
 
-/** Glassmorphic toggle switch visual. The row that contains it carries the toggle semantics. */
+/** Glassmorphic toggle switch visual with spring physics. The row that contains it carries the toggle semantics. */
 @Composable
 fun SwitchVisual(checked: Boolean) {
     val c = Tokens.colors
-    val x by animateDpAsState(if (checked) 24.dp else 4.dp, label = "thumb")
+    val x by animateDpAsState(
+        targetValue = if (checked) 24.dp else 4.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "switchThumbX",
+    )
+    val thumbScale by animateFloatAsState(
+        targetValue = if (checked) 1f else 0.88f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "switchThumbScale",
+    )
+    val thumbColor by animateColorAsState(
+        targetValue = if (checked) c.onBrand else c.inkMuted.copy(alpha = 0.65f),
+        animationSpec = tween(240),
+        label = "switchThumbColor",
+    )
     Box(
         Modifier
             .size(width = 52.dp, height = 32.dp)
-            .clip(CircleShape)
-            .then(
-                if (checked) {
-                    Modifier
-                        .background(
-                            Brush.linearGradient(listOf(c.brand, c.brand.copy(alpha = 0.80f))),
-                            CircleShape,
-                        )
-                        .border(1.dp, c.glassBrandBorder, CircleShape)
-                } else {
-                    Modifier.glassSurface(shape = CircleShape, variant = GlassVariant.FROST)
-                },
+            .glassSurface(
+                shape = CircleShape,
+                variant = if (checked) GlassVariant.EMERALD else GlassVariant.FROST,
             ),
     ) {
         Box(
             Modifier
                 .offset(x = x, y = 4.dp)
                 .size(24.dp)
+                .graphicsLayer {
+                    scaleX = thumbScale
+                    scaleY = thumbScale
+                }
                 .clip(CircleShape)
-                .background(if (checked) c.onBrand else c.inkMuted.copy(alpha = 0.65f))
+                .background(thumbColor)
                 .border(1.dp, c.glassHighlight, CircleShape),
         )
     }

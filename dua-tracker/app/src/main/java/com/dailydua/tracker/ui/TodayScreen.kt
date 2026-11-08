@@ -1,6 +1,21 @@
 package com.dailydua.tracker.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -18,7 +33,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -29,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dailydua.tracker.data.Dua
@@ -50,37 +66,57 @@ fun TodayScreen(ui: UiState, onOpen: (Dua) -> Unit) {
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { Header(ui.streak) }
-        item { Hero(doneCount, duas.size) }
-        item {
-            SectionLabel(
-                text = "Morning",
-                modifier = Modifier.padding(top = 12.dp),
-                badge = "${morning.count { it.id in ui.doneToday }}/${morning.size}",
-            )
+        item(key = "header") {
+            StaggeredEntrance(index = 0) {
+                Header(ui.streak)
+            }
         }
-        items(morning, key = { it.id }) { d ->
-            DuaRow(d, d.id in ui.doneToday) { onOpen(d) }
+        item(key = "hero") {
+            StaggeredEntrance(index = 1) {
+                Hero(doneCount, duas.size)
+            }
         }
-        item {
-            SectionLabel(
-                text = "Evening",
-                modifier = Modifier.padding(top = 12.dp),
-                badge = "${evening.count { it.id in ui.doneToday }}/${evening.size}",
-            )
+        item(key = "morning_label") {
+            StaggeredEntrance(index = 2) {
+                SectionLabel(
+                    text = "Morning",
+                    modifier = Modifier.padding(top = 12.dp),
+                    badge = "${morning.count { it.id in ui.doneToday }}/${morning.size}",
+                )
+            }
         }
-        items(evening, key = { it.id }) { d ->
-            DuaRow(d, d.id in ui.doneToday) { onOpen(d) }
+        itemsIndexed(morning, key = { _, d -> d.id }) { idx, d ->
+            StaggeredEntrance(index = 3 + idx) {
+                DuaRow(d, d.id in ui.doneToday) { onOpen(d) }
+            }
         }
-        item {
-            SectionLabel(
-                text = "Longer duas",
-                modifier = Modifier.padding(top = 12.dp),
-                badge = "${anytime.count { it.id in ui.doneToday }}/${anytime.size}",
-            )
+        item(key = "evening_label") {
+            StaggeredEntrance(index = 3 + morning.size) {
+                SectionLabel(
+                    text = "Evening",
+                    modifier = Modifier.padding(top = 12.dp),
+                    badge = "${evening.count { it.id in ui.doneToday }}/${evening.size}",
+                )
+            }
         }
-        items(anytime, key = { it.id }) { d ->
-            DuaRow(d, d.id in ui.doneToday) { onOpen(d) }
+        itemsIndexed(evening, key = { _, d -> d.id }) { idx, d ->
+            StaggeredEntrance(index = 4 + morning.size + idx) {
+                DuaRow(d, d.id in ui.doneToday) { onOpen(d) }
+            }
+        }
+        item(key = "anytime_label") {
+            StaggeredEntrance(index = 4 + morning.size + evening.size) {
+                SectionLabel(
+                    text = "Longer duas",
+                    modifier = Modifier.padding(top = 12.dp),
+                    badge = "${anytime.count { it.id in ui.doneToday }}/${anytime.size}",
+                )
+            }
+        }
+        itemsIndexed(anytime, key = { _, d -> d.id }) { idx, d ->
+            StaggeredEntrance(index = 5 + morning.size + evening.size + idx) {
+                DuaRow(d, d.id in ui.doneToday) { onOpen(d) }
+            }
         }
     }
 }
@@ -88,6 +124,16 @@ fun TodayScreen(ui: UiState, onOpen: (Dua) -> Unit) {
 @Composable
 private fun Header(streak: Int) {
     val c = Tokens.colors
+    val infinite = rememberInfiniteTransition(label = "streakDotPulse")
+    val dotScale by infinite.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.22f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "streakDotScale",
+    )
     Row(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -107,15 +153,30 @@ private fun Header(streak: Int) {
             Box(
                 Modifier
                     .size(8.dp)
+                    .graphicsLayer {
+                        val s = if (streak > 0) dotScale else 1f
+                        scaleX = s
+                        scaleY = s
+                    }
                     .clip(CircleShape)
                     .background(c.gold),
             )
             Spacer(Modifier.width(8.dp))
-            Text(
-                if (streak > 0) "$streak day streak" else "Start your streak",
-                style = DuaType.caption.copy(fontWeight = FontWeight.Bold),
-                color = c.goldInk,
-            )
+            AnimatedContent(
+                targetState = if (streak > 0) "$streak day streak" else "Start your streak",
+                transitionSpec = {
+                    (slideInVertically { it / 2 } + fadeIn(tween(240)))
+                        .togetherWith(slideOutVertically { -it / 2 } + fadeOut(tween(180)))
+                        .using(SizeTransform(clip = false))
+                },
+                label = "streakText",
+            ) { label ->
+                Text(
+                    label,
+                    style = DuaType.caption.copy(fontWeight = FontWeight.Bold),
+                    color = c.goldInk,
+                )
+            }
         }
     }
 }
@@ -123,8 +184,15 @@ private fun Header(streak: Int) {
 @Composable
 private fun Hero(done: Int, total: Int) {
     val c = Tokens.colors
-    val fraction by animateFloatAsState(if (total == 0) 0f else done.toFloat() / total, label = "progress")
-    val pct = (fraction * 100).toInt()
+    val fraction by animateFloatAsState(
+        targetValue = if (total == 0) 0f else done.toFloat() / total,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessLow,
+        ),
+        label = "progressFraction",
+    )
+    val pct = if (total == 0) 0 else (done * 100) / total
     val message = when {
         done == total -> "All done for today. Well done."
         done > 0 -> "Good progress. Take your time."
@@ -153,7 +221,18 @@ private fun Hero(done: Int, total: Int) {
                 )
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text("$done", style = DuaType.displayLg, color = Color.White)
+                    AnimatedContent(
+                        targetState = done,
+                        transitionSpec = {
+                            val up = targetState > initialState
+                            (slideInVertically { if (up) it else -it } + fadeIn(tween(240)))
+                                .togetherWith(slideOutVertically { if (up) -it else it } + fadeOut(tween(180)))
+                                .using(SizeTransform(clip = false))
+                        },
+                        label = "doneCountRoll",
+                    ) { count ->
+                        Text("$count", style = DuaType.displayLg, color = Color.White)
+                    }
                     Text(
                         " of $total duas done",
                         style = DuaType.body,
@@ -170,11 +249,22 @@ private fun Hero(done: Int, total: Int) {
                     .padding(horizontal = 12.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    "$pct%",
-                    style = DuaType.caption.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White,
-                )
+                AnimatedContent(
+                    targetState = pct,
+                    transitionSpec = {
+                        val up = targetState > initialState
+                        (slideInVertically { if (up) it else -it } + fadeIn(tween(240)))
+                            .togetherWith(slideOutVertically { if (up) -it else it } + fadeOut(tween(180)))
+                            .using(SizeTransform(clip = false))
+                    },
+                    label = "pctRoll",
+                ) { targetPct ->
+                    Text(
+                        "$targetPct%",
+                        style = DuaType.caption.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White,
+                    )
+                }
             }
         }
         Spacer(Modifier.height(16.dp))
@@ -188,7 +278,7 @@ private fun Hero(done: Int, total: Int) {
         ) {
             Box(
                 Modifier
-                    .fillMaxWidth(fraction)
+                    .fillMaxWidth(fraction.coerceIn(0f, 1f))
                     .fillMaxHeight()
                     .clip(CircleShape)
                     .background(
@@ -199,7 +289,16 @@ private fun Hero(done: Int, total: Int) {
             )
         }
         Spacer(Modifier.height(14.dp))
-        Text(message, style = DuaType.caption, color = Color.White.copy(alpha = 0.90f))
+        AnimatedContent(
+            targetState = message,
+            transitionSpec = {
+                (slideInVertically { it / 2 } + fadeIn(tween(260)))
+                    .togetherWith(slideOutVertically { -it / 2 } + fadeOut(tween(180)))
+            },
+            label = "heroMessage",
+        ) { targetMessage ->
+            Text(targetMessage, style = DuaType.caption, color = Color.White.copy(alpha = 0.90f))
+        }
     }
 }
 

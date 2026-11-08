@@ -1,5 +1,8 @@
 package com.dailydua.tracker.ui
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,51 +67,60 @@ fun DuaSheet(
                     .background(c.border),
             )
 
-            SectionLabel(dua.title, badge = dua.tag)
+            StaggeredEntrance(index = 0) {
+                SectionLabel(dua.title, badge = dua.tag)
+            }
             Spacer(Modifier.height(14.dp))
 
             // Frosted glass verse card
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .glassSurface(
-                        shape = RoundedCornerShape(22.dp),
-                        variant = if (done) GlassVariant.SOFT_EMERALD else GlassVariant.FROST,
-                    )
-                    .padding(20.dp),
-            ) {
-                Text(
-                    dua.arabic,
-                    style = DuaType.arabic(settings.arabicSize),
-                    color = c.ink,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                if (settings.showTransliteration && dua.transliteration.isNotBlank()) {
-                    Spacer(Modifier.height(12.dp))
-                    HorizontalDivider(color = c.hairline)
-                    Spacer(Modifier.height(12.dp))
+            StaggeredEntrance(index = 1) {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .glassSurface(
+                            shape = RoundedCornerShape(22.dp),
+                            variant = if (done) GlassVariant.SOFT_EMERALD else GlassVariant.FROST,
+                        )
+                        .animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))
+                        .padding(20.dp),
+                ) {
                     Text(
-                        dua.transliteration,
-                        style = DuaType.body.copy(fontStyle = FontStyle.Italic),
-                        color = c.inkMuted,
+                        dua.arabic,
+                        style = DuaType.arabic(settings.arabicSize),
+                        color = c.ink,
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                }
-                if (settings.showTranslation && dua.translation.isNotBlank()) {
-                    Spacer(Modifier.height(10.dp))
-                    Text(dua.translation, style = DuaType.body, color = c.ink)
+                    if (settings.showTransliteration && dua.transliteration.isNotBlank()) {
+                        Spacer(Modifier.height(12.dp))
+                        HorizontalDivider(color = c.hairline)
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            dua.transliteration,
+                            style = DuaType.body.copy(fontStyle = FontStyle.Italic),
+                            color = c.inkMuted,
+                        )
+                    }
+                    if (settings.showTranslation && dua.translation.isNotBlank()) {
+                        Spacer(Modifier.height(10.dp))
+                        Text(dua.translation, style = DuaType.body, color = c.ink)
+                    }
                 }
             }
 
             Spacer(Modifier.height(22.dp))
-            PrimaryButton(
-                text = if (done) "Mark as not done" else "Mark as done",
-                onClick = {
-                    onToggleDone()
-                    onDismiss()
-                },
-            )
-            Spacer(Modifier.height(12.dp))
-            OutlinedButton("Close", onClick = onDismiss)
+            StaggeredEntrance(index = 2) {
+                Column {
+                    PrimaryButton(
+                        text = if (done) "Mark as not done" else "Mark as done",
+                        onClick = {
+                            onToggleDone()
+                            onDismiss()
+                        },
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedButton("Close", onClick = onDismiss)
+                }
+            }
         }
     }
 }
