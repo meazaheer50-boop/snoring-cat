@@ -70,6 +70,13 @@ object SampleDuas {
             source = "Text from YouTube's automatic captions, without vowel marks; the English is an unverified draft translation. Not yet verified.",
         ),
         Dua(
+            id = "waqiah", title = "Surah Al-Waqi\u2019ah", tag = "Quran 56 \u00b7 14 min", time = TimeOfDay.ANYTIME,
+            lines = WaqiahData.lines,
+            audioAsset = "waqiah.mp3",
+            category = "Recitations",
+            source = "Arabic: Tanzil (Uthmani). English: Saheeh International. Verse start times were matched to the recording.",
+        ),
+        Dua(
             id = "mulk", title = "Surah Al-Mulk", tag = "Quran 67 \u00b7 9 min", time = TimeOfDay.ANYTIME,
             lines = MulkData.lines,
             audioAsset = "mulk.mp3",
