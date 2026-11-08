@@ -50,7 +50,17 @@ class ScreenTour {
         }
     }
 
+    /** The slow CI emulator sometimes shows a system "isn't responding" dialog; press Wait. */
+    private fun dismissSystemDialogs() {
+        repeat(3) {
+            val wait = device.findObject(androidx.test.uiautomator.By.text("Wait")) ?: return
+            wait.click()
+            Thread.sleep(400)
+        }
+    }
+
     private fun shot(name: String, settleMs: Long = 900) {
+        dismissSystemDialogs()
         rule.waitForIdle()
         Thread.sleep(settleMs)
         val bmp = inst.uiAutomation.takeScreenshot() ?: return
@@ -63,6 +73,7 @@ class ScreenTour {
 
     private fun step(name: String, block: () -> Unit) {
         try {
+            dismissSystemDialogs()
             block()
         } catch (t: Throwable) {
             android.util.Log.e("ScreenTour", "Step $name failed", t)
