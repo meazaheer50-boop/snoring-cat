@@ -8,4 +8,3 @@ local.properties
 .DS_Store
 
 # Recordings are not committed. Copy qunoot.mp3 here before building.
-app/src/main/assets/audio/
