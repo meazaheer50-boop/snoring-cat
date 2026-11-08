@@ -8,6 +8,9 @@ on:
       - 'dua-tracker/**'
       - '.github/workflows/dua-ui-test.yml'
 
+permissions:
+  contents: write
+
 jobs:
   screen-tour:
     runs-on: ubuntu-latest
@@ -56,7 +59,7 @@ jobs:
             adb shell am instrument -w -e class com.dailydua.tracker.ScreenTour com.dailydua.tracker.test/androidx.test.runner.AndroidJUnitRunner > ../instrument.txt 2>&1 || true
             mkdir -p ../shots
             adb pull /data/local/tmp/shots ../shots/ || true
-            adb logcat -d > ../logcat.txt || true
+            adb logcat -d "*:W" > ../logcat.txt || true
             adb shell settings put global animator_duration_scale 1 || true
             adb shell settings put global transition_animation_scale 1 || true
             adb shell settings put global window_animation_scale 1 || true
@@ -75,3 +78,18 @@ jobs:
             instrument.txt
             logcat.txt
           if-no-files-found: warn
+
+      - name: Publish screenshots to the dua-ui-shots branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/out
+          cp -r shots instrument.txt logcat.txt /tmp/out/ 2>/dev/null || true
+          cd /tmp/out
+          git init -q -b dua-ui-shots
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "UI tour for ${{ github.sha }}"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" dua-ui-shots
