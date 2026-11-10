@@ -7,6 +7,12 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.TextStyle
+import com.dailydua.tracker.ui.theme.QuranFont
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
@@ -475,6 +481,35 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, ar
     val numbered = Regex("^(\\d+)\\.\\s*(.*)$", RegexOption.DOT_MATCHES_ALL)
     val verses = dua.lines.mapNotNull { l -> numbered.find(l.translation)?.let { Triple(it.groupValues[1], l.arabic, it.groupValues[2]) } }
     val bismillah = dua.lines.firstOrNull { it.arabic.startsWith("بِسْمِ") }
+    val ink = c.ink
+    // Each verse ends with a gold ring holding its number in Arabic-Indic digits.
+    val markers = remember(verses.size, arabicSize, gold, ink) {
+        verses.associate { (n, _, _) ->
+            "v$n" to InlineTextContent(
+                Placeholder((arabicSize * 1.2f).sp, (arabicSize * 1.2f).sp, PlaceholderVerticalAlign.Center),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(2.dp)
+                        .border(1.2.dp, gold, CircleShape)
+                        .padding(2.dp)
+                        .border(0.6.dp, gold.copy(alpha = 0.55f), CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        arabicDigits(n),
+                        style = TextStyle(
+                            fontFamily = QuranFont,
+                            fontSize = (arabicSize * (if (n.length > 2) 0.34f else 0.44f)).sp,
+                            color = ink,
+                            textDirection = TextDirection.Rtl,
+                        ),
+                    )
+                }
+            }
+        }
+    }
     LazyColumn(
         Modifier
             .fillMaxSize()
@@ -528,12 +563,13 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, ar
                     verses.forEach { (n, ar, _) ->
                         append(ar)
                         append(" ")
-                        withStyle(SpanStyle(color = gold)) { append("\u06DD" + arabicDigits(n)) }
+                        appendInlineContent("v$n", n)
                         append(" ")
                     }
                 }
                 Text(
                     text,
+                    inlineContent = markers,
                     style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Justify, lineHeight = (arabicSize * 2f).sp),
                     color = c.ink,
                     modifier = Modifier.fillMaxWidth(),
@@ -544,9 +580,10 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, ar
                 val (n, ar, en) = verses[i]
                 Column(Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
                     Text(
-                        buildAnnotatedString {
+                        inlineContent = markers,
+                        text = buildAnnotatedString {
                             append(ar); append(" ")
-                            withStyle(SpanStyle(color = gold)) { append("\u06DD" + arabicDigits(n)) }
+                            appendInlineContent("v$n", n)
                         },
                         style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Justify, lineHeight = (arabicSize * 2f).sp),
                         color = c.ink,
