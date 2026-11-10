@@ -364,83 +364,33 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
             val edgeA = Color.White.copy(alpha = if (c.isDark) 0.10f else 0.55f)
             when (design) {
                 "aurora" -> {
-                    // Soft curtains of light swaying from the top of the screen.
-                    val cols = listOf(orbA, orbC, orbB)
-                    for (i in 0 until 3) {
-                        val cx = w * (0.2f + 0.3f * i)
+                    // Curtains of light swaying across the whole screen, top to bottom.
+                    val cols = listOf(orbA, orbC, orbB, orbC, orbA)
+                    for (i in 0 until 5) {
+                        val cx = w * (0.1f + 0.2f * i)
                         val path = Path()
-                        var y = -20f
-                        while (y <= h * 0.75f) {
+                        var y = -40f
+                        while (y <= h + 40f) {
                             val u = y / h
-                            val x = cx + w * 0.10f * kotlin.math.sin(u * 7f + t * (if (i % 2 == 0) 1 else -1) + i * 2f) * (1f + 0.8f * voice) +
-                                w * 0.04f * dA
+                            val x = cx + w * 0.09f * kotlin.math.sin(u * 6f + t * (if (i % 2 == 0) 1 else -1) + i * 2f) * (1f + 0.8f * voice) +
+                                w * 0.04f * (if (i % 2 == 0) dA else dB)
                             if (y < 0f) path.moveTo(x, y) else path.lineTo(x, y)
                             y += 48f
                         }
                         val col = cols[i]
-                        for ((wd, al) in listOf(0.30f to 0.45f, 0.12f to 0.8f)) {
+                        val glow = (1f + 0.9f * voice)
+                        for ((wd, al) in listOf(0.26f to 0.40f, 0.10f to 0.75f)) {
+                            val a = (col.alpha * al * glow).coerceAtMost(1f)
                             drawPath(
                                 path,
                                 brush = Brush.verticalGradient(
-                                    listOf(Color.Transparent, col.copy(alpha = col.alpha * al * (1f + 0.9f * voice)), Color.Transparent),
-                                    startY = 0f, endY = h * 0.75f,
+                                    listOf(col.copy(alpha = a * 0.5f), col.copy(alpha = a), col.copy(alpha = a * 0.6f), col.copy(alpha = a)),
+                                    startY = 0f, endY = h,
                                 ),
                                 style = Stroke(w * wd, cap = androidx.compose.ui.graphics.StrokeCap.Round),
                             )
                         }
                     }
-                }
-                "ripples" -> {
-                    // Soft rings of light spreading from the bottom of the screen.
-                    val cols = listOf(orbA, orbC, orbB)
-                    for (i in 0 until 5) {
-                        val prog = ((i / 5f) + (ms % 18000L) / 18000f) % 1f
-                        val r = h * (0.12f + 0.85f * prog)
-                        val col = cols[i % 3]
-                        val fade = (1f - prog) * kotlin.math.min(1f, prog * 6f)
-                        val center = Offset(w * (0.5f + 0.1f * dA), h * 1.02f)
-                        drawCircle(
-                            col.copy(alpha = (col.alpha * 2.2f * fade * (1f + 1.2f * voice)).coerceIn(0f, 1f)),
-                            radius = r, center = center,
-                            style = Stroke(w * (0.05f + 0.05f * prog) * (1f + voice)),
-                        )
-                        drawCircle(
-                            edgeA.copy(alpha = edgeA.alpha * fade), radius = r, center = center, style = Stroke(1.2.dp.toPx()),
-                        )
-                    }
-                }
-                "mist" -> {
-                    // Huge soft clouds of colour drifting slowly around the screen.
-                    val cols = listOf(orbA, orbC, orbB, orbA, orbC)
-                    for (i in 0 until 5) {
-                        val ang = ms * 6.2831855f / (42000f + i * 9000f) + i * 2.1f
-                        val cx = w * (0.5f + 0.42f * kotlin.math.cos(ang))
-                        val cy = h * (0.5f + 0.32f * kotlin.math.sin(ang * 0.8f + i))
-                        val col = cols[i]
-                        orb(col.copy(alpha = (col.alpha * 1.5f).coerceAtMost(1f)), cx, cy, w * 0.85f * (1f + 0.3f * voice))
-                    }
-                }
-                "fireflies" -> {
-                    // Tiny lights that twinkle and wander, brighter with the voice.
-                    val cols = listOf(style.a, style.b, style.c)
-                    for (i in 0 until 26) {
-                        val fx = (i * 0.6180339f) % 1f
-                        val fy = (i * 0.3819660f + 0.13f) % 1f
-                        val x = w * fx + w * 0.04f * kotlin.math.sin(ms / 3100f + i)
-                        val y = h * fy + h * 0.03f * kotlin.math.cos(ms / 4300f + i * 1.3f)
-                        val tw = 0.5f + 0.5f * kotlin.math.sin(ms / (700f + (i % 5) * 160f) + i)
-                        val r = (2f + (i % 3)) * density * (1f + 0.8f * voice)
-                        val col = cols[i % 3]
-                        drawCircle(col.copy(alpha = 0.10f * tw), r * 4f, Offset(x, y))
-                        drawCircle(col.copy(alpha = (if (c.isDark) 0.85f else 0.65f) * tw), r, Offset(x, y))
-                    }
-                }
-                "horizon" -> {
-                    // A slow rising glow along the bottom edge, like first light.
-                    val breathe = 0.5f + 0.5f * kotlin.math.sin(ms / 4500f)
-                    orb(orbB.copy(alpha = (orbB.alpha * 2.4f).coerceAtMost(1f)), w * 0.5f, h * 1.02f, w * (1.1f + 0.25f * breathe + 0.5f * voice))
-                    orb(orbA.copy(alpha = (orbA.alpha * 1.8f).coerceAtMost(1f)), w * (0.5f + 0.2f * dA), h * 0.98f, w * (1.6f + 0.3f * voice))
-                    orb(orbC.copy(alpha = (orbC.alpha * 1.4f).coerceAtMost(1f)), w * (0.5f - 0.25f * dB), h * 1.0f, w * 0.8f)
                 }
                 "contour" -> {
                     // Thin flowing lines, like contours on a map of water.
@@ -519,36 +469,6 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                         val fade = kotlin.math.sin(prog * 3.1415927f)
                         drawCircle(col.copy(alpha = 0.12f * fade), r * 3.5f, Offset(x, y))
                         drawCircle(col.copy(alpha = 0.9f * fade), r, Offset(x, y))
-                    }
-                }
-                "beams" -> {
-                    // Slow rays of light turning around a point below the screen.
-                    val centre = Offset(w * 0.5f, h * 1.08f)
-                    val cols = listOf(orbA, orbB, orbC)
-                    rotate((ms % 120000L) / 120000f * 360f, centre) {
-                        val stops = ArrayList<Color>()
-                        for (k in 0 until 6) {
-                            val col = cols[k % 3].copy(alpha = (cols[k % 3].alpha * (1.5f + voice)).coerceAtMost(1f))
-                            stops.add(Color.Transparent); stops.add(col); stops.add(Color.Transparent)
-                        }
-                        stops.add(Color.Transparent)
-                        drawCircle(Brush.sweepGradient(colors = stops, center = centre), radius = h * 1.6f, center = centre)
-                    }
-                }
-                "swirl" -> {
-                    // Smoke-like ribbons tracing slow looping paths.
-                    val cols = listOf(orbA, orbC, orbB)
-                    for (k in 0 until 3) {
-                        val path = Path()
-                        for (n in 0..70) {
-                            val a = n / 70f * 6.2831855f
-                            val x = w * 0.5f + w * 0.40f * (1f + 0.3f * voice) * kotlin.math.sin(2f * a + t * (0.5f + 0.25f * k) + k * 2f)
-                            val y = h * 0.5f + h * 0.30f * (1f + 0.3f * voice) * kotlin.math.sin(3f * a + t * 0.7f + k * 1.3f)
-                            if (n == 0) path.moveTo(x, y) else path.lineTo(x, y)
-                        }
-                        val col = cols[k]
-                        drawPath(path, col.copy(alpha = (col.alpha * 0.9f)), style = Stroke(w * 0.11f, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
-                        drawPath(path, col.copy(alpha = (col.alpha * 2f).coerceAtMost(0.8f)), style = Stroke(w * 0.025f, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
                     }
                 }
                 "dunes" -> {
