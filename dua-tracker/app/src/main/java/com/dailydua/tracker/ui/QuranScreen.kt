@@ -285,6 +285,10 @@ fun MushafReader(
     surah: MushafSurah,
     startPage: Int,
     onPageChange: (Int) -> Unit,
+    arabicSize: Int,
+    onSize: (Int) -> Unit,
+    favorite: Boolean,
+    onToggleFavorite: () -> Unit,
     onClose: () -> Unit,
 ) {
     val c = Tokens.colors
@@ -356,7 +360,7 @@ fun MushafReader(
 
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 if (!pagesMode) {
-                    TextReader(surah, gold, showEnglish, onTap = { if (!fullscreen) chrome = !chrome })
+                    TextReader(surah, gold, showEnglish, arabicSize, onTap = { if (!fullscreen) chrome = !chrome })
                 } else {
                     HorizontalPager(
                         state = pager,
@@ -388,6 +392,17 @@ fun MushafReader(
                 enter = fadeIn() + slideInVertically { it / 2 },
                 exit = fadeOut() + slideOutVertically { it / 2 },
             ) {
+                Column {
+                if (!pagesMode) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        FavoriteButton(favorite, onToggleFavorite)
+                        Spacer(Modifier.weight(1f))
+                        TextSizeControl(arabicSize, onSize)
+                    }
+                }
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -432,6 +447,7 @@ fun MushafReader(
                         ) { ask(); if (ps.mediaId == dua.id) PlayerHub.toggle() else PlayerHub.playDua(dua) }
                     }
                 }
+                }
             }
         }
         if (fullscreen) {
@@ -453,7 +469,7 @@ fun MushafReader(
 private fun arabicDigits(n: String) = n.map { if (it in '0'..'9') '\u0660' + (it - '0') else it }.joinToString("")
 
 @Composable
-private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, onTap: () -> Unit) {
+private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, arabicSize: Int, onTap: () -> Unit) {
     val c = Tokens.colors
     val dua = SampleDuas.all.first { it.id == surah.id }
     val numbered = Regex("^(\\d+)\\.\\s*(.*)$", RegexOption.DOT_MATCHES_ALL)
@@ -518,7 +534,7 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, on
                 }
                 Text(
                     text,
-                    style = DuaType.arabic(29).copy(textAlign = TextAlign.Justify, lineHeight = 58.sp),
+                    style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Justify, lineHeight = (arabicSize * 2f).sp),
                     color = c.ink,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -532,7 +548,7 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, on
                             append(ar); append(" ")
                             withStyle(SpanStyle(color = gold)) { append("\u06DD" + arabicDigits(n)) }
                         },
-                        style = DuaType.arabic(29).copy(textAlign = TextAlign.Justify, lineHeight = 56.sp),
+                        style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Justify, lineHeight = (arabicSize * 2f).sp),
                         color = c.ink,
                         modifier = Modifier.fillMaxWidth(),
                     )

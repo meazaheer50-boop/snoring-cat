@@ -41,6 +41,9 @@ fun DuaSheet(
     dua: Dua,
     done: Boolean,
     settings: Settings,
+    favorite: Boolean,
+    onToggleFavorite: () -> Unit,
+    onSize: (Int) -> Unit,
     onToggleDone: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -78,13 +81,18 @@ fun DuaSheet(
             )
 
             StaggeredEntrance(index = 0) {
-                Column {
-                    Text(dua.title, style = DuaType.displayMd.copy(fontSize = 22.sp, lineHeight = 28.sp), color = c.ink)
-                    Spacer(Modifier.height(2.dp))
-                    Text(dua.tag, style = DuaType.caption, color = c.brand)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(dua.title, style = DuaType.displayMd.copy(fontSize = 22.sp, lineHeight = 28.sp), color = c.ink)
+                        Spacer(Modifier.height(2.dp))
+                        Text(dua.tag, style = DuaType.caption, color = c.brand)
+                    }
+                    FavoriteButton(favorite, onToggleFavorite)
                 }
             }
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { TextSizeControl(settings.arabicSize, onSize) }
+            Spacer(Modifier.height(8.dp))
 
             // Frosted glass verse card
             StaggeredEntrance(index = 1) {

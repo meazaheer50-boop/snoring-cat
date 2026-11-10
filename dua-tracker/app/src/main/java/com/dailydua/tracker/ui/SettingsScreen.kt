@@ -191,7 +191,7 @@ fun SettingsScreen(ui: UiState, vm: DuaViewModel) {
                         Spacer(Modifier.height(10.dp))
                         Segmented(
                             options = sizeOptions.map { it.first },
-                            selected = sizeOptions.indexOfFirst { it.second == settings.arabicSize }.coerceAtLeast(0),
+                            selected = sizeOptions.indices.minByOrNull { kotlin.math.abs(sizeOptions[it].second - settings.arabicSize) } ?: 0,
                             onSelect = { vm.setArabicSize(sizeOptions[it].second) },
                         )
                     }

@@ -54,7 +54,7 @@ import com.dailydua.tracker.ui.theme.DuaType
 import com.dailydua.tracker.ui.theme.Tokens
 
 @Composable
-fun TodayScreen(ui: UiState, onOpen: (Dua) -> Unit) {
+fun TodayScreen(ui: UiState, onOpen: (Dua) -> Unit, onFavorite: (String) -> Unit) {
     val all = SampleDuas.all
     // Progress counts the daily morning and evening duas. The rest is a library to browse.
     val daily = all.filter { it.time != TimeOfDay.ANYTIME }
@@ -72,8 +72,10 @@ fun TodayScreen(ui: UiState, onOpen: (Dua) -> Unit) {
         item(key = "hero") {
             StaggeredEntrance(index = 1) { Hero(doneCount, daily.size) }
         }
-        daySection("Through the day", daily, ui, onOpen)
-        groups.forEach { (title, list) -> daySection(title, list, ui, onOpen) }
+        val favs = all.filter { it.id in ui.favorites }
+        if (favs.isNotEmpty()) daySection("Favourites", favs, ui, onOpen, onFavorite)
+        daySection("Through the day", daily, ui, onOpen, onFavorite)
+        groups.forEach { (title, list) -> daySection(title, list, ui, onOpen, onFavorite) }
     }
 }
 
@@ -82,6 +84,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.daySection(
     list: List<Dua>,
     ui: UiState,
     onOpen: (Dua) -> Unit,
+    onFavorite: (String) -> Unit,
 ) {
     item(key = "section-$title") {
         StaggeredEntrance(index = 2) {
@@ -94,7 +97,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.daySection(
     }
     itemsIndexed(list, key = { _, d -> "$title-${d.id}" }) { idx, d ->
         StaggeredEntrance(index = 3 + minOf(idx, 5)) {
-            DuaRow(d, d.id in ui.doneToday) { onOpen(d) }
+            DuaRow(d, d.id in ui.doneToday, favorite = d.id in ui.favorites, onFavorite = { onFavorite(d.id) }) { onOpen(d) }
         }
     }
 }

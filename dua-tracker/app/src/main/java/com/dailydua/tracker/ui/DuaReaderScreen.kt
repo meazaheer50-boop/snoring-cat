@@ -89,6 +89,9 @@ fun DuaReaderScreen(
     dua: Dua,
     done: Boolean,
     settings: Settings,
+    favorite: Boolean,
+    onToggleFavorite: () -> Unit,
+    onSize: (Int) -> Unit,
     onToggleDone: () -> Unit,
     onClose: () -> Unit,
 ) {
@@ -192,6 +195,17 @@ fun DuaReaderScreen(
                         )
                     }
                 }
+            }
+
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FavoriteButton(favorite, onToggleFavorite)
+                Spacer(Modifier.weight(1f))
+                TextSizeControl(settings.arabicSize, onSize)
             }
 
             LazyColumn(

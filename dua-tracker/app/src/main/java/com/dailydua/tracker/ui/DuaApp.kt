@@ -152,7 +152,7 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
                         label = "tabNavigation",
                     ) { targetTab ->
                         when (targetTab) {
-                            0 -> TodayScreen(ui, onOpen = { openId = it.id })
+                            0 -> TodayScreen(ui, onOpen = { openId = it.id }, onFavorite = vm::toggleFavorite)
                             1 -> QuranScreen(ui, onRead = { readingId = it.id }, onOpenDua = { openId = it })
                             2 -> PlaylistScreen(ui, vm, onOpen = { openId = it.id })
                             else -> SettingsScreen(ui, vm)
@@ -192,6 +192,9 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
                         dua = activeReaderDua,
                         done = activeReaderDua.id in ui.doneToday,
                         settings = ui.settings,
+                        favorite = activeReaderDua.id in ui.favorites,
+                        onToggleFavorite = { vm.toggleFavorite(activeReaderDua.id) },
+                        onSize = { vm.adjustArabicSize(it) },
                         onToggleDone = { vm.toggleDone(activeReaderDua.id) },
                         onClose = { openId = null },
                     )
@@ -213,6 +216,10 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
                         surah = surah,
                         startPage = ui.lastPages[surah.id] ?: 0,
                         onPageChange = { vm.setLastPage(surah.id, it) },
+                        arabicSize = ui.settings.arabicSize,
+                        onSize = { vm.adjustArabicSize(it) },
+                        favorite = surah.id in ui.favorites,
+                        onToggleFavorite = { vm.toggleFavorite(surah.id) },
                         onClose = { readingId = null },
                     )
                 }
@@ -223,6 +230,9 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
                     dua = sheetDua,
                     done = sheetDua.id in ui.doneToday,
                     settings = ui.settings,
+                    favorite = sheetDua.id in ui.favorites,
+                    onToggleFavorite = { vm.toggleFavorite(sheetDua.id) },
+                    onSize = { vm.adjustArabicSize(it) },
                     onToggleDone = { vm.toggleDone(sheetDua.id) },
                     onDismiss = { openId = null },
                 )

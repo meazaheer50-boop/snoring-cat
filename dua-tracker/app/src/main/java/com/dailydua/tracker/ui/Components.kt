@@ -54,6 +54,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -441,7 +445,7 @@ fun CheckCircle(done: Boolean) {
 }
 
 @Composable
-fun DuaRow(dua: Dua, done: Boolean, onClick: () -> Unit) {
+fun DuaRow(dua: Dua, done: Boolean, favorite: Boolean = false, onFavorite: (() -> Unit)? = null, onClick: () -> Unit) {
     val c = Tokens.colors
     val hasAudio = dua.audioAsset != null
     Row(
@@ -481,6 +485,9 @@ fun DuaRow(dua: Dua, done: Boolean, onClick: () -> Unit) {
                     Text("· Done", style = DuaType.caption.copy(fontWeight = FontWeight.SemiBold), color = c.brand)
                 }
             }
+        }
+        if (onFavorite != null) {
+            FavoriteButton(favorite, onFavorite, size = 40.dp)
         }
         if (hasAudio) {
             Box(
@@ -657,3 +664,65 @@ fun SwitchVisual(checked: Boolean) {
     }
 }
 
+
+/** A heart that fills in gold when the dua is a favourite. */
+@Composable
+fun FavoriteButton(favorite: Boolean, onClick: () -> Unit, size: androidx.compose.ui.unit.Dp = 44.dp) {
+    val c = Tokens.colors
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        if (favorite) 1.12f else 1f,
+        spring(dampingRatio = 0.35f, stiffness = 400f),
+        label = "heart",
+    )
+    Box(
+        Modifier
+            .size(size)
+            .testTag("favorite")
+            .glassSurface(shape = CircleShape, variant = if (favorite) GlassVariant.GOLD else GlassVariant.FROST)
+            .bounceClick(pressedScale = 0.88f, role = Role.Button, onClickLabel = if (favorite) "Remove from favourites" else "Add to favourites", onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            if (favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+            contentDescription = if (favorite) "Favourite" else "Not a favourite",
+            tint = if (favorite) c.goldInk else c.inkMuted,
+            modifier = Modifier
+                .size(size * 0.5f)
+                .graphicsLayer { scaleX = scale; scaleY = scale },
+        )
+    }
+}
+
+/** A- and A+ buttons that make the Arabic text smaller or larger. */
+@Composable
+fun TextSizeControl(size: Int, onChange: (Int) -> Unit) {
+    val c = Tokens.colors
+    Row(
+        Modifier
+            .glassSurface(shape = CircleShape, variant = GlassVariant.FROST)
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        @Composable
+        fun step(label: String, big: Boolean, enabled: Boolean, delta: Int) {
+            Box(
+                Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .graphicsLayer { alpha = if (enabled) 1f else 0.35f }
+                    .testTag(if (big) "sizeUp" else "sizeDown")
+                    .bounceClick(pressedScale = 0.88f, role = Role.Button, onClickLabel = label) { if (enabled) onChange(delta) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    if (big) "A+" else "A\u2212",
+                    style = DuaType.body.copy(fontWeight = FontWeight.Bold, fontSize = if (big) 18.sp else 14.sp),
+                    color = c.ink,
+                )
+            }
+        }
+        step("Smaller text", false, size > MIN_ARABIC, -2)
+        Text("$size", style = DuaType.caption, color = c.inkMuted, modifier = Modifier.padding(horizontal = 6.dp))
+        step("Larger text", true, size < MAX_ARABIC, 2)
+    }
+}

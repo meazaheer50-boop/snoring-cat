@@ -36,6 +36,7 @@ class DuaRepository(private val context: Context) {
     private val done = stringSetPreferencesKey("done")
     private val remindersKey = stringSetPreferencesKey("reminders")
     private val playlistKey = stringPreferencesKey("playlist")
+    private val favoritesKey = stringSetPreferencesKey("favorites")
 
     val settings: Flow<Settings> = context.store.data.map { p ->
         Settings(
@@ -46,6 +47,15 @@ class DuaRepository(private val context: Context) {
             showTransliteration = p[translit] ?: true,
             showTranslation = p[translation] ?: true,
         )
+    }
+
+    val favorites: Flow<Set<String>> = context.store.data.map { it[favoritesKey] ?: emptySet() }
+
+    suspend fun toggleFavorite(duaId: String) {
+        context.store.edit { p ->
+            val current = p[favoritesKey] ?: emptySet()
+            p[favoritesKey] = if (duaId in current) current - duaId else current + duaId
+        }
     }
 
     val doneEntries: Flow<Set<String>> = context.store.data.map { it[done] ?: emptySet() }

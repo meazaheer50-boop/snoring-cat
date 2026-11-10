@@ -21,12 +21,28 @@ data class UiState(
     val reminders: List<Reminder> = emptyList(),
     val playlist: List<String> = emptyList(),
     val lastPages: Map<String, Int> = emptyMap(),
+    val favorites: Set<String> = emptySet(),
 )
+
+const val MIN_ARABIC = 20
+const val MAX_ARABIC = 56
 
 class DuaViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = DuaRepository(app)
 
-    val state: StateFlow<UiState> = combine(repo.settings, repo.doneEntries, repo.reminders, repo.playlist, repo.lastPages) { settings, entries, reminders, playlist, lastPages ->
+    val state: StateFlow<UiState> = combine(repo.settings, repo.doneEntries, repo.reminders, repo.playlist, repo.lastPages, repo.favorites) { values ->
+        @Suppress("UNCHECKED_CAST")
+        val settings = values[0] as Settings
+        @Suppress("UNCHECKED_CAST")
+        val entries = values[1] as Set<String>
+        @Suppress("UNCHECKED_CAST")
+        val reminders = values[2] as List<Reminder>
+        @Suppress("UNCHECKED_CAST")
+        val playlist = values[3] as List<String>
+        @Suppress("UNCHECKED_CAST")
+        val lastPages = values[4] as Map<String, Int>
+        @Suppress("UNCHECKED_CAST")
+        val favorites = values[5] as Set<String>
         val today = LocalDate.now()
         UiState(
             settings = settings,
@@ -35,6 +51,7 @@ class DuaViewModel(app: Application) : AndroidViewModel(app) {
             reminders = reminders,
             playlist = playlist,
             lastPages = lastPages,
+            favorites = favorites,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, UiState())
 
@@ -54,6 +71,11 @@ class DuaViewModel(app: Application) : AndroidViewModel(app) {
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { repo.setTheme(mode) }
     fun setMorningReminder(on: Boolean) = viewModelScope.launch { repo.setMorningReminder(on) }
     fun setEveningReminder(on: Boolean) = viewModelScope.launch { repo.setEveningReminder(on) }
+    fun toggleFavorite(duaId: String) = viewModelScope.launch { repo.toggleFavorite(duaId) }
+    fun adjustArabicSize(delta: Int) = viewModelScope.launch {
+        val now = state.value.settings.arabicSize
+        repo.setArabicSize((now + delta).coerceIn(MIN_ARABIC, MAX_ARABIC))
+    }
     fun setArabicSize(size: Int) = viewModelScope.launch { repo.setArabicSize(size) }
     fun setShowTransliteration(on: Boolean) = viewModelScope.launch { repo.setShowTransliteration(on) }
     fun setShowTranslation(on: Boolean) = viewModelScope.launch { repo.setShowTranslation(on) }
