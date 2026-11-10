@@ -598,7 +598,7 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, ar
                 Text(
                     text,
                     inlineContent = markers,
-                    style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Justify, lineHeight = (arabicSize * 2f).sp),
+                    style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Justify, lineHeight = (arabicSize * QURAN_LINE_HEIGHT).sp),
                     color = c.ink,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -613,7 +613,7 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, ar
                             append(ar); append("\u00A0\u00A0")
                             appendInlineContent("v$n", n)
                         },
-                        style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Justify, lineHeight = (arabicSize * 2f).sp),
+                        style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Justify, lineHeight = (arabicSize * QURAN_LINE_HEIGHT).sp),
                         color = c.ink,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -683,3 +683,9 @@ private fun MushafPage(surah: MushafSurah, page: Int, onZoomChange: (Boolean) ->
         }
     }
 }
+
+/**
+ * Line height for Quran text, in multiples of the font size. Amiri Quran draws pause marks
+ * (ۚ ۖ ۗ) up to ~1.8 em above the baseline, so tighter lines push them into the line above.
+ */
+private const val QURAN_LINE_HEIGHT = 2.5f

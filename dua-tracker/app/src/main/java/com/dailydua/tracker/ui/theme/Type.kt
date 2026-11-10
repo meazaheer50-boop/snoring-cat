@@ -23,7 +23,7 @@ object DuaType {
 
     fun arabic(sizeSp: Int) = TextStyle(
         fontSize = sizeSp.sp,
-        lineHeight = (sizeSp * 1.85f).sp,
+        lineHeight = (sizeSp * 2.3f).sp,
         fontFamily = QuranFont,
         fontWeight = FontWeight.Normal,
         textDirection = TextDirection.Rtl,
