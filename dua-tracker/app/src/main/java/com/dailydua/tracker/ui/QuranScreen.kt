@@ -411,6 +411,15 @@ fun MushafReader(
                         ReminderButton(onReminder)
                         Spacer(Modifier.width(8.dp))
                         RepeatButton()
+                        Spacer(Modifier.width(8.dp))
+                    Box(
+                        Modifier
+                            .size(44.dp)
+                            .glassSurface(shape = CircleShape, variant = GlassVariant.FROST)
+                            .testTag("fullscreen")
+                            .bounceClick(role = Role.Button, onClickLabel = "Full screen") { fullscreen = true; chrome = false },
+                        contentAlignment = Alignment.Center,
+                    ) { Icon(AppIcons.Fullscreen, contentDescription = "Full screen", tint = c.ink) }
                         Spacer(Modifier.weight(1f))
                         TextSizeControl(arabicSize, onSize)
                     }
@@ -445,14 +454,6 @@ fun MushafReader(
                             horizontalPadding = 8.dp,
                         ) { showEnglish = !showEnglish }
                     }
-                    Box(
-                        Modifier
-                            .size(48.dp)
-                            .glassSurface(shape = CircleShape, variant = GlassVariant.FROST)
-                            .testTag("fullscreen")
-                            .bounceClick(role = Role.Button, onClickLabel = "Full screen") { fullscreen = true; chrome = false },
-                        contentAlignment = Alignment.Center,
-                    ) { Icon(AppIcons.Fullscreen, contentDescription = "Full screen", tint = c.ink) }
                     if (dua != null) {
                         Pill(
                             text = if (playingThis) "Pause" else "Listen",
@@ -592,7 +593,7 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, ar
                 Text(
                     text,
                     inlineContent = markers,
-                    style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Justify, lineHeight = (arabicSize * 2f).sp),
+                    style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Start, lineHeight = (arabicSize * 2f).sp),
                     color = c.ink,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -607,7 +608,7 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, ar
                             append(ar); append(" ")
                             appendInlineContent("v$n", n)
                         },
-                        style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Justify, lineHeight = (arabicSize * 2f).sp),
+                        style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Start, lineHeight = (arabicSize * 2f).sp),
                         color = c.ink,
                         modifier = Modifier.fillMaxWidth(),
                     )
