@@ -40,7 +40,7 @@ class LevelAudioProcessor : BaseAudioProcessor() {
             if (view.remaining() >= 12) view.position(view.position() + 10)
         }
         val rms = if (count > 0) sqrt(sum / count).toFloat() / 32768f else 0f
-        val target = (rms * 5f).coerceIn(0f, 1f)
+        val target = ((rms * 3f) - 0.1f).coerceIn(0f, 1f)
         smoothed = if (target > smoothed) smoothed + (target - smoothed) * 0.5f else smoothed * 0.93f
         AudioLevel.level = smoothed
         replaceOutputBuffer(size).put(inputBuffer).flip()
