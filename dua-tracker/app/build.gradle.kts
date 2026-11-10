@@ -12,14 +12,33 @@ android {
         applicationId = "com.dailydua.tracker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
+        // Grows with every CI build so Android always accepts a new build as an update.
+        versionCode = 100 + (System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0)
         versionName = "1.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // One fixed key for every build, so a new APK installs over the old one without uninstalling.
+    // CI supplies the key from GitHub secrets; without it the build falls back to the temporary debug key.
+    val keystoreFile = System.getenv("DUA_KEYSTORE_FILE")
+    if (keystoreFile != null) {
+        signingConfigs {
+            create("dua") {
+                storeFile = file(keystoreFile)
+                storePassword = System.getenv("DUA_KEYSTORE_PASSWORD")
+                keyAlias = "dua"
+                keyPassword = System.getenv("DUA_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfigs.findByName("dua")?.let { signingConfig = it }
+        }
         release {
             isMinifyEnabled = false
+            signingConfigs.findByName("dua")?.let { signingConfig = it }
         }
     }
     compileOptions {
