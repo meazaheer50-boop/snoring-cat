@@ -8,6 +8,9 @@ import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -78,6 +81,7 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
             var tab by rememberSaveable { mutableStateOf(0) }
             var openId by rememberSaveable { mutableStateOf<String?>(null) }
             var readingId by rememberSaveable { mutableStateOf<String?>(null) }
+            val enteredTabs = remember { mutableStateListOf<Int>() }
             var reminderFor by remember { mutableStateOf<Dua?>(null) }
             val askNotifications = LocalAskNotifications.current
             val appContext = androidx.compose.ui.platform.LocalContext.current
@@ -137,31 +141,34 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
                     AnimatedContent(
                         targetState = tab,
                         transitionSpec = {
-                            val forward = targetState > initialState
-                            val enterSlide = slideInHorizontally(
-                                animationSpec = tween(durationMillis = 340, easing = FastOutSlowInEasing),
-                            ) { fullWidth -> if (forward) fullWidth / 4 else -fullWidth / 4 }
-                            val exitSlide = slideOutHorizontally(
-                                animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-                            ) { fullWidth -> if (forward) -fullWidth / 5 else fullWidth / 5 }
-
-                            (enterSlide + fadeIn(tween(280)) + scaleIn(
-                                initialScale = 0.96f,
-                                animationSpec = tween(340, easing = FastOutSlowInEasing),
-                            )).togetherWith(
-                                exitSlide + fadeOut(tween(220)) + scaleOut(
-                                    targetScale = 0.96f,
-                                    animationSpec = tween(300, easing = FastOutSlowInEasing),
-                                ),
+                            // A quick crossfade with a small slide. No scaling, so the big glass layers stay cheap to draw.
+                            val dir = if (targetState > initialState) 1 else -1
+                            (
+                                fadeIn(tween(220, delayMillis = 60, easing = LinearOutSlowInEasing)) +
+                                    slideInHorizontally(tween(260, easing = FastOutSlowInEasing)) { it / 16 * dir }
+                                ).togetherWith(
+                                fadeOut(tween(110, easing = LinearEasing)) +
+                                    slideOutHorizontally(tween(200, easing = FastOutSlowInEasing)) { -it / 32 * dir },
                             ).using(SizeTransform(clip = false))
                         },
                         label = "tabNavigation",
                     ) { targetTab ->
+                        // Card entrances play only the first time a tab opens, never on return visits or when scrolling back.
+                        var settled by remember(targetTab) { mutableStateOf(targetTab in enteredTabs) }
+                        LaunchedEffect(targetTab) {
+                            if (!settled) {
+                                kotlinx.coroutines.delay(1100)
+                                settled = true
+                                if (targetTab !in enteredTabs) enteredTabs.add(targetTab)
+                            }
+                        }
+                        androidx.compose.runtime.CompositionLocalProvider(LocalEntrance provides !settled) {
                         when (targetTab) {
                             0 -> TodayScreen(ui, onOpen = { openId = it.id }, onFavorite = vm::toggleFavorite)
                             1 -> QuranScreen(ui, onRead = { readingId = it.id }, onOpenDua = { openId = it })
                             2 -> PlaylistScreen(ui, vm, onOpen = { openId = it.id })
                             else -> SettingsScreen(ui, vm)
+                        }
                         }
                     }
                 }

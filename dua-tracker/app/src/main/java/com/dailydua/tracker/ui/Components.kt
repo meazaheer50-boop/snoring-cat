@@ -19,6 +19,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
@@ -129,6 +130,9 @@ fun Modifier.bounceClick(
         )
 }
 
+/** False once a screen has already played its entrance, so cards show instantly. */
+val LocalEntrance = androidx.compose.runtime.compositionLocalOf { true }
+
 /** Staggered entrance animation wrapper that fades and slides items upward into place. */
 @Composable
 fun StaggeredEntrance(
@@ -136,22 +140,23 @@ fun StaggeredEntrance(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    var visible by remember { mutableStateOf(false) }
+    val animate = LocalEntrance.current
+    var visible by remember { mutableStateOf(!animate) }
     LaunchedEffect(Unit) {
-        delay((index.coerceIn(0, 10) * 38L))
+        if (animate) delay((index.coerceIn(0, 10) * 38L))
         visible = true
     }
     val alpha by animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing),
+        animationSpec = if (animate) tween(durationMillis = 360, easing = FastOutSlowInEasing) else snap(),
         label = "staggerAlpha",
     )
     val offsetY by animateFloatAsState(
         targetValue = if (visible) 0f else 28f,
-        animationSpec = spring(
+        animationSpec = if (animate) spring(
             dampingRatio = Spring.DampingRatioLowBouncy,
             stiffness = Spring.StiffnessLow,
-        ),
+        ) else snap(),
         label = "staggerOffsetY",
     )
     Box(

@@ -94,7 +94,7 @@ object SampleDuas {
             lines = NamesData.lines,
             audioAsset = "names99.m4a",
             category = "Listen and follow along",
-            source = "Names and meanings follow the common list; some lists differ slightly in order and wording. Timing was matched to the recording by its rhythm.",
+            source = "Names and meanings follow the common list; some lists differ slightly in order and wording. Timing comes from the recording's captions, adjusted to its pauses; the opening line is transcribed from the captions.",
         ),
         Dua(
             id = "janazah", title = "Janazah prayer guide", tag = "4 takbirs · what to recite", time = TimeOfDay.ANYTIME,
