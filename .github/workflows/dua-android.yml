@@ -43,6 +43,10 @@ jobs:
             echo "::warning::No signing key secret found. Using the temporary debug key, so the APK will not install over an older one."
           fi
 
+      - name: Check Quran text renders with the Quran font
+        working-directory: dua-tracker
+        run: pip install --quiet fonttools && python3 tools/quran_text.py check
+
       - name: Build debug APK
         working-directory: dua-tracker
         run: gradle assembleDebug --no-daemon
