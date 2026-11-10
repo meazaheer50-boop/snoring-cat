@@ -127,6 +127,13 @@ class ScreenTour {
             rule.onNodeWithTag("play").performClick()
             Thread.sleep(6000)
             shot("08_qunoot_playing")
+            // The background reads this value to move with the voice.
+            val samples = (0 until 40).map {
+                Thread.sleep(100)
+                val v = rule.runOnUiThread { com.dailydua.tracker.playback.AudioLevel.level }
+                v
+            }
+            android.util.Log.i("ScreenTour", "AUDIO_LEVEL max=${samples.max()} min=${samples.min()} avg=${samples.average()}")
             back()
             shot("09_today_mini_player")
         }
