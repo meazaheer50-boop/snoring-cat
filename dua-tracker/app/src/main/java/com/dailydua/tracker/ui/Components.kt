@@ -476,6 +476,80 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                         )
                     }
                 }
+                "rain" -> {
+                    // Fine streaks of light falling at different speeds.
+                    val cols = listOf(style.a, style.c, style.b)
+                    for (i in 0 until 38) {
+                        val x = w * ((i * 0.6180339f) % 1f)
+                        val prog = (ms * (0.00005f + (i % 5) * 0.000018f) + i * 0.137f) % 1f
+                        val y = h * (-0.1f + 1.2f * prog)
+                        val len = h * (0.035f + 0.03f * (i % 4)) * (1f + voice)
+                        val fade = kotlin.math.sin(prog * 3.1415927f)
+                        val col = cols[i % 3].copy(alpha = (if (c.isDark) 0.45f else 0.35f) * fade)
+                        drawLine(col, Offset(x, y - len), Offset(x, y), strokeWidth = (1f + (i % 3) * 0.5f) * density,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                    }
+                }
+                "moon" -> {
+                    // A soft moon glowing above slow drifting cloud.
+                    val mx = w * 0.76f
+                    val my = h * 0.17f
+                    orb(style.c.copy(alpha = if (c.isDark) 0.30f else 0.22f), mx, my, w * (0.75f + 0.25f * voice))
+                    orb(style.a.copy(alpha = if (c.isDark) 0.22f else 0.16f), mx, my, w * 0.38f)
+                    drawCircle(
+                        Color.White.copy(alpha = if (c.isDark) 0.92f else 0.85f),
+                        radius = w * 0.075f, center = Offset(mx, my),
+                    )
+                    for (k in 0 until 3) {
+                        val cx = w * (((ms / (60000f + k * 20000f)) + k * 0.37f) % 1.4f - 0.2f)
+                        orb(Color.White.copy(alpha = if (c.isDark) 0.07f else 0.30f), cx, h * (0.22f + 0.07f * k), w * 0.5f)
+                    }
+                }
+                "embers" -> {
+                    // Warm motes rising from the bottom and fading out.
+                    val cols = listOf(style.b, style.a, style.c)
+                    orb(orbB.copy(alpha = (orbB.alpha * 1.6f).coerceAtMost(1f)), w * 0.5f, h * 1.05f, w * (0.9f + 0.4f * voice))
+                    for (i in 0 until 30) {
+                        val prog = (ms * (0.00004f + (i % 4) * 0.000015f) + i * 0.31f) % 1f
+                        val x = w * ((i * 0.7236f) % 1f) + w * 0.05f * kotlin.math.sin(prog * 10f + i)
+                        val y = h * (1.05f - 1.1f * prog)
+                        val r = (1.2f + (i % 3)) * density * (1f + voice)
+                        val col = cols[i % 3]
+                        val fade = kotlin.math.sin(prog * 3.1415927f)
+                        drawCircle(col.copy(alpha = 0.12f * fade), r * 3.5f, Offset(x, y))
+                        drawCircle(col.copy(alpha = 0.9f * fade), r, Offset(x, y))
+                    }
+                }
+                "beams" -> {
+                    // Slow rays of light turning around a point below the screen.
+                    val centre = Offset(w * 0.5f, h * 1.08f)
+                    val cols = listOf(orbA, orbB, orbC)
+                    androidx.compose.ui.graphics.drawscope.rotate((ms % 120000L) / 120000f * 360f, centre) {
+                        val stops = ArrayList<Color>()
+                        for (k in 0 until 6) {
+                            val col = cols[k % 3].copy(alpha = (cols[k % 3].alpha * (1.5f + voice)).coerceAtMost(1f))
+                            stops.add(Color.Transparent); stops.add(col); stops.add(Color.Transparent)
+                        }
+                        stops.add(Color.Transparent)
+                        drawCircle(Brush.sweepGradient(colors = stops, center = centre), radius = h * 1.6f, center = centre)
+                    }
+                }
+                "swirl" -> {
+                    // Smoke-like ribbons tracing slow looping paths.
+                    val cols = listOf(orbA, orbC, orbB)
+                    for (k in 0 until 3) {
+                        val path = Path()
+                        for (n in 0..70) {
+                            val a = n / 70f * 6.2831855f
+                            val x = w * 0.5f + w * 0.40f * (1f + 0.3f * voice) * kotlin.math.sin(2f * a + t * (0.5f + 0.25f * k) + k * 2f)
+                            val y = h * 0.5f + h * 0.30f * (1f + 0.3f * voice) * kotlin.math.sin(3f * a + t * 0.7f + k * 1.3f)
+                            if (n == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                        }
+                        val col = cols[k]
+                        drawPath(path, col.copy(alpha = (col.alpha * 0.9f)), style = Stroke(w * 0.11f, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+                        drawPath(path, col.copy(alpha = (col.alpha * 2f).coerceAtMost(0.8f)), style = Stroke(w * 0.025f, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+                    }
+                }
                 "dunes" -> {
                     // Broad, slow hills layered like sand.
                     silk(h * (0.66f + 0.01f * dA), h * 0.060f, 0.55f, 1.2f, 0.5f, 1f, orbB.copy(alpha = orbB.alpha * 1.6f), edgeA)
