@@ -492,24 +492,38 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, ar
     val markers = remember(verses.size, arabicSize, gold, ink) {
         verses.associate { (n, _, _) ->
             "v$n" to InlineTextContent(
-                Placeholder((arabicSize * 1.2f).sp, (arabicSize * 1.2f).sp, PlaceholderVerticalAlign.Center),
+                Placeholder((arabicSize * 1.3f).sp, (arabicSize * 1.3f).sp, PlaceholderVerticalAlign.Center),
             ) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(2.dp)
-                        .border(1.2.dp, gold, CircleShape)
-                        .padding(2.dp)
-                        .border(0.6.dp, gold.copy(alpha = 0.55f), CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    // A scalloped rosette like the verse-end marker in a printed mushaf.
+                    androidx.compose.foundation.Canvas(Modifier.fillMaxSize().padding(1.dp)) {
+                        val radius = size.minDimension / 2f
+                        val path = androidx.compose.ui.graphics.Path()
+                        val steps = 280
+                        for (i in 0..steps) {
+                            val th = (2.0 * Math.PI * i / steps).toFloat()
+                            val r = radius * (0.93f + 0.07f * kotlin.math.cos(16f * th))
+                            val x = center.x + r * kotlin.math.cos(th)
+                            val y = center.y + r * kotlin.math.sin(th)
+                            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                        }
+                        path.close()
+                        drawPath(path, gold.copy(alpha = 0.16f))
+                        drawPath(path, gold, style = androidx.compose.ui.graphics.drawscope.Stroke(1.4.dp.toPx()))
+                        drawCircle(gold.copy(alpha = 0.7f), radius = radius * 0.70f, style = androidx.compose.ui.graphics.drawscope.Stroke(0.8.dp.toPx()))
+                    }
                     Text(
                         arabicDigits(n),
                         style = TextStyle(
                             fontFamily = QuranFont,
-                            fontSize = (arabicSize * (if (n.length > 2) 0.42f else 0.56f)).sp,
+                            fontSize = (arabicSize * (if (n.length > 2) 0.40f else 0.50f)).sp,
+                            lineHeight = (arabicSize * (if (n.length > 2) 0.40f else 0.50f)).sp,
+                            lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
+                                androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
+                                androidx.compose.ui.text.style.LineHeightStyle.Trim.Both,
+                            ),
                             color = ink,
-                            textDirection = TextDirection.Rtl,
+                            textAlign = TextAlign.Center,
                         ),
                     )
                 }
