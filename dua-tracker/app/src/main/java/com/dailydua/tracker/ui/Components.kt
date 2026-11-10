@@ -272,8 +272,7 @@ fun rememberReduceMotion(): Boolean {
 fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
     val c = Tokens.colors
     val reduceMotion = rememberReduceMotion()
-    // One clock at ~30 fps drives every wave, instead of three 60 fps transitions; it
-    // stops entirely while the app is in the background.
+    // One clock drives every wave at the display's full refresh rate; it stops while the app is in the background.
     var clock by remember { mutableLongStateOf(0L) }
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     LaunchedEffect(reduceMotion) {
@@ -282,7 +281,7 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
             var last = 0L
             while (true) {
                 val n = withFrameNanos { it }
-                if (n - last >= 30_000_000L) { last = n; clock = n / 1_000_000L }
+                last = n; clock = n / 1_000_000L
             }
         }
     }
@@ -388,21 +387,6 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                                 style = Stroke(w * wd, cap = androidx.compose.ui.graphics.StrokeCap.Round),
                             )
                         }
-                    }
-                }
-                "bokeh" -> {
-                    // Slow, out-of-focus lights rising and breathing with the voice.
-                    val cols = listOf(orbA, orbB, orbC)
-                    for (i in 0 until 10) {
-                        val fx = ((i * 0.6180339f) % 1f)
-                        val speed = 0.5f + (i % 4) * 0.25f
-                        val prog = ((i * 0.37f) + t / 6.2831855f * speed) % 1f
-                        val y = h * (1.1f - 1.25f * prog)
-                        val x = w * (0.05f + 0.9f * fx) + w * 0.03f * kotlin.math.sin(t * 2f + i)
-                        val r = w * (0.07f + 0.05f * ((i * 7) % 5) / 4f) * (1f + 0.5f * voice)
-                        val fade = kotlin.math.sin(prog * 3.1415927f)
-                        val col = cols[i % 3]
-                        orb(col.copy(alpha = (col.alpha * 2.2f * fade).coerceIn(0f, 1f)), x, y, r)
                     }
                 }
                 "dunes" -> {

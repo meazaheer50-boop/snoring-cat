@@ -26,10 +26,28 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         PlayerHub.init(this)
+        requestHighRefreshRate()
         launchDuaId = intent?.getStringExtra(EXTRA_DUA_ID)
         setContent {
             CompositionLocalProvider(LocalAskNotifications provides ::askNotificationsOnce) {
                 DuaApp(launchDuaId = launchDuaId, onLaunchHandled = { launchDuaId = null })
+            }
+        }
+    }
+
+    /** Ask for the display's fastest mode (90 Hz or more where the phone supports it). */
+    private fun requestHighRefreshRate() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+        runCatching {
+            @Suppress("DEPRECATION")
+            val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) display else windowManager.defaultDisplay
+            val current = display?.mode ?: return
+            val best = display.supportedModes
+                .filter { it.physicalWidth == current.physicalWidth && it.physicalHeight == current.physicalHeight }
+                .maxByOrNull { it.refreshRate } ?: return
+            window.attributes = window.attributes.apply {
+                preferredDisplayModeId = best.modeId
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) preferredRefreshRate = best.refreshRate
             }
         }
     }

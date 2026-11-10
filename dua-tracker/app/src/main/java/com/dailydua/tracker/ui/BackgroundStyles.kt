@@ -33,7 +33,6 @@ val LocalBackgroundStyle = compositionLocalOf { BackgroundStyle.all.first() }
 val backgroundDesigns = listOf(
     "silk" to "Silk",
     "aurora" to "Aurora",
-    "bokeh" to "Bokeh",
     "dunes" to "Dunes",
 )
 
