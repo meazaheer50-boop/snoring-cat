@@ -62,6 +62,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dailydua.tracker.data.Mushaf
+import androidx.compose.runtime.remember
+import com.dailydua.tracker.data.Dua
+import com.dailydua.tracker.data.Reminder
 import com.dailydua.tracker.data.SampleDuas
 import com.dailydua.tracker.ui.theme.DuaTheme
 import com.dailydua.tracker.ui.theme.DuaType
@@ -75,6 +78,9 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
             var tab by rememberSaveable { mutableStateOf(0) }
             var openId by rememberSaveable { mutableStateOf<String?>(null) }
             var readingId by rememberSaveable { mutableStateOf<String?>(null) }
+            var reminderFor by remember { mutableStateOf<Dua?>(null) }
+            val askNotifications = LocalAskNotifications.current
+            val appContext = androidx.compose.ui.platform.LocalContext.current
             val readingSurah = Mushaf.all.firstOrNull { it.id == readingId }
             LaunchedEffect(Unit) { vm.rescheduleReminders() }
             LaunchedEffect(launchDuaId) {
@@ -194,6 +200,7 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
                         settings = ui.settings,
                         favorite = activeReaderDua.id in ui.favorites,
                         onToggleFavorite = { vm.toggleFavorite(activeReaderDua.id) },
+                        onReminder = { reminderFor = activeReaderDua },
                         onSize = { vm.adjustArabicSize(it) },
                         onToggleDone = { vm.toggleDone(activeReaderDua.id) },
                         onClose = { openId = null },
@@ -220,9 +227,25 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
                         onSize = { vm.adjustArabicSize(it) },
                         favorite = surah.id in ui.favorites,
                         onToggleFavorite = { vm.toggleFavorite(surah.id) },
+                        onReminder = { reminderFor = SampleDuas.all.firstOrNull { it.id == surah.id } },
                         onClose = { readingId = null },
                     )
                 }
+            }
+
+            reminderFor?.let { d ->
+                ReminderDialog(
+                    initial = Reminder(id = System.currentTimeMillis().toString(), label = d.title, hour = 8, minute = 0, duaId = d.id),
+                    isNew = true,
+                    onSave = {
+                        askNotifications()
+                        vm.saveReminder(it)
+                        reminderFor = null
+                        android.widget.Toast.makeText(appContext, "Reminder set for ${it.timeText()}", android.widget.Toast.LENGTH_SHORT).show()
+                    },
+                    onDelete = { reminderFor = null },
+                    onDismiss = { reminderFor = null },
+                )
             }
 
             if (sheetDua != null) {
@@ -232,6 +255,7 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
                     settings = ui.settings,
                     favorite = sheetDua.id in ui.favorites,
                     onToggleFavorite = { vm.toggleFavorite(sheetDua.id) },
+                    onReminder = { reminderFor = sheetDua },
                     onSize = { vm.adjustArabicSize(it) },
                     onToggleDone = { vm.toggleDone(sheetDua.id) },
                     onDismiss = { openId = null },

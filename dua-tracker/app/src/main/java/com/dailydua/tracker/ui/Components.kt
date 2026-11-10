@@ -726,3 +726,19 @@ fun TextSizeControl(size: Int, onChange: (Int) -> Unit) {
         step("Larger text", true, size < MAX_ARABIC, 2)
     }
 }
+
+/** A clock button that opens the reminder dialog for the dua being read. */
+@Composable
+fun ReminderButton(onClick: () -> Unit, size: androidx.compose.ui.unit.Dp = 44.dp) {
+    val c = Tokens.colors
+    Box(
+        Modifier
+            .size(size)
+            .testTag("setReminder")
+            .glassSurface(shape = CircleShape, variant = GlassVariant.FROST)
+            .bounceClick(pressedScale = 0.88f, role = Role.Button, onClickLabel = "Set a reminder", onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(AppIcons.Clock, contentDescription = "Set a reminder", tint = c.inkMuted, modifier = Modifier.size(size * 0.5f))
+    }
+}

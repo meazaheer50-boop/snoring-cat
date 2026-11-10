@@ -295,6 +295,7 @@ fun MushafReader(
     onSize: (Int) -> Unit,
     favorite: Boolean,
     onToggleFavorite: () -> Unit,
+    onReminder: () -> Unit,
     onClose: () -> Unit,
 ) {
     val c = Tokens.colors
@@ -405,6 +406,8 @@ fun MushafReader(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         FavoriteButton(favorite, onToggleFavorite)
+                        Spacer(Modifier.width(8.dp))
+                        ReminderButton(onReminder)
                         Spacer(Modifier.weight(1f))
                         TextSizeControl(arabicSize, onSize)
                     }

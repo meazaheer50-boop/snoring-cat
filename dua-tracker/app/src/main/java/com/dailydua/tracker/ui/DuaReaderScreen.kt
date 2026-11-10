@@ -91,6 +91,7 @@ fun DuaReaderScreen(
     settings: Settings,
     favorite: Boolean,
     onToggleFavorite: () -> Unit,
+    onReminder: () -> Unit,
     onSize: (Int) -> Unit,
     onToggleDone: () -> Unit,
     onClose: () -> Unit,
@@ -204,6 +205,8 @@ fun DuaReaderScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 FavoriteButton(favorite, onToggleFavorite)
+                Spacer(Modifier.width(8.dp))
+                ReminderButton(onReminder)
                 Spacer(Modifier.weight(1f))
                 TextSizeControl(settings.arabicSize, onSize)
             }

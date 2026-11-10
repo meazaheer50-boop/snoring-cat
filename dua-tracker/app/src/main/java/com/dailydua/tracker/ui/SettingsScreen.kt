@@ -329,7 +329,7 @@ private fun TimeWheel(value: String, label: String, onUp: () -> Unit, onDown: ()
 }
 
 @Composable
-private fun ReminderDialog(
+internal fun ReminderDialog(
     initial: Reminder,
     isNew: Boolean,
     onSave: (Reminder) -> Unit,
