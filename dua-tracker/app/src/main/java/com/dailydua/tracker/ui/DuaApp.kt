@@ -101,6 +101,14 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
             val sheetDua = openDua?.takeIf { it.lines.isEmpty() }
             val readerOpen = readerDua != null || readingSurah != null
 
+            // Stop the screen from locking while a reader is open, if the setting is on.
+            val keepOn = ui.settings.keepScreenOn && readerOpen
+            val hostView = androidx.compose.ui.platform.LocalView.current
+            androidx.compose.runtime.DisposableEffect(keepOn) {
+                hostView.keepScreenOn = keepOn
+                onDispose { hostView.keepScreenOn = false }
+            }
+
             // Navigate back from Settings tab to Today tab on system back press
             BackHandler(enabled = tab != 0 && openId == null && readingId == null) {
                 tab = 0

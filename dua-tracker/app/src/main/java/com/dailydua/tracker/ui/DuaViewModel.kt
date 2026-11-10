@@ -79,6 +79,7 @@ class DuaViewModel(app: Application) : AndroidViewModel(app) {
     fun setArabicSize(size: Int) = viewModelScope.launch { repo.setArabicSize(size) }
     fun setShowTransliteration(on: Boolean) = viewModelScope.launch { repo.setShowTransliteration(on) }
     fun setShowTranslation(on: Boolean) = viewModelScope.launch { repo.setShowTranslation(on) }
+    fun setKeepScreenOn(on: Boolean) = viewModelScope.launch { repo.setKeepScreenOn(on) }
 
     fun saveReminder(r: Reminder) = viewModelScope.launch { repo.saveReminder(r) }
     fun deleteReminder(r: Reminder) = viewModelScope.launch { repo.deleteReminder(r) }

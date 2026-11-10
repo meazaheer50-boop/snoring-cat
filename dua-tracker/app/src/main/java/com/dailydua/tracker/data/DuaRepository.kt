@@ -23,6 +23,7 @@ data class Settings(
     val arabicSize: Int = 32,
     val showTransliteration: Boolean = true,
     val showTranslation: Boolean = true,
+    val keepScreenOn: Boolean = true,
 )
 
 class DuaRepository(private val context: Context) {
@@ -32,6 +33,7 @@ class DuaRepository(private val context: Context) {
     private val arabicSize = intPreferencesKey("arabic_size")
     private val translit = booleanPreferencesKey("show_transliteration")
     private val translation = booleanPreferencesKey("show_translation")
+    private val keepOn = booleanPreferencesKey("keep_screen_on")
     /** Entries look like "2026-11-03|waking". */
     private val done = stringSetPreferencesKey("done")
     private val remindersKey = stringSetPreferencesKey("reminders")
@@ -46,6 +48,7 @@ class DuaRepository(private val context: Context) {
             arabicSize = p[arabicSize] ?: 32,
             showTransliteration = p[translit] ?: true,
             showTranslation = p[translation] ?: true,
+            keepScreenOn = p[keepOn] ?: true,
         )
     }
 
@@ -72,6 +75,7 @@ class DuaRepository(private val context: Context) {
     suspend fun setArabicSize(size: Int) { context.store.edit { it[arabicSize] = size } }
     suspend fun setShowTransliteration(on: Boolean) { context.store.edit { it[translit] = on } }
     suspend fun setShowTranslation(on: Boolean) { context.store.edit { it[translation] = on } }
+    suspend fun setKeepScreenOn(on: Boolean) { context.store.edit { it[keepOn] = on } }
 
     suspend fun toggleDone(date: LocalDate, duaId: String) {
         val entry = "$date|$duaId"

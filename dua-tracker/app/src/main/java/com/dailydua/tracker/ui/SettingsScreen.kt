@@ -201,6 +201,8 @@ fun SettingsScreen(ui: UiState, vm: DuaViewModel) {
                     SwitchRow("Show transliteration", null, settings.showTransliteration, vm::setShowTransliteration)
                     HorizontalDivider(color = c.hairline)
                     SwitchRow("Show translation", null, settings.showTranslation, vm::setShowTranslation)
+                    HorizontalDivider(color = c.hairline)
+                    SwitchRow("Keep screen on while reading", "Stops the screen from locking in the readers", settings.keepScreenOn, vm::setKeepScreenOn)
                 }
             }
         }
