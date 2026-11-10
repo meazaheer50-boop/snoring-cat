@@ -108,6 +108,14 @@ fun SettingsScreen(ui: UiState, vm: DuaViewModel) {
                         Spacer(Modifier.height(12.dp))
                         BackgroundPicker(settings.background, vm::setBackground)
                         Spacer(Modifier.height(18.dp))
+                        Text("Design", style = DuaType.body.copy(fontWeight = FontWeight.SemiBold), color = c.ink)
+                        Spacer(Modifier.height(10.dp))
+                        Segmented(
+                            options = backgroundDesigns.map { it.second },
+                            selected = backgroundDesigns.indexOfFirst { it.first == settings.design }.coerceAtLeast(0),
+                            onSelect = { vm.setDesign(backgroundDesigns[it].first) },
+                        )
+                        Spacer(Modifier.height(18.dp))
                         Text("Theme", style = DuaType.body.copy(fontWeight = FontWeight.SemiBold), color = c.ink)
                         Spacer(Modifier.height(10.dp))
                         Segmented(

@@ -28,3 +28,13 @@ data class BackgroundStyle(
 }
 
 val LocalBackgroundStyle = compositionLocalOf { BackgroundStyle.all.first() }
+
+/** Motion designs for the backdrop, independent of its colours. */
+val backgroundDesigns = listOf(
+    "silk" to "Silk",
+    "aurora" to "Aurora",
+    "bokeh" to "Bokeh",
+    "dunes" to "Dunes",
+)
+
+val LocalBackgroundDesign = compositionLocalOf { "silk" }

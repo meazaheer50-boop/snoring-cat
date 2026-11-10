@@ -289,6 +289,7 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
     val playGain by animateFloatAsState(if (isPlaying) 1f else 0f, tween(700), label = "playGain")
 
     val style = LocalBackgroundStyle.current
+    val design = LocalBackgroundDesign.current
     val custom = style.id != "emerald"
     val base = if (c.isDark) style.darkBase else style.lightBase
     val orbA = if (custom) style.a.copy(alpha = if (c.isDark) 0.28f else 0.22f) else c.orbPrimary
@@ -354,9 +355,61 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                 drawPath(top, color = edge, style = Stroke(1.2.dp.toPx()))
             }
             val edgeA = Color.White.copy(alpha = if (c.isDark) 0.10f else 0.55f)
-            silk(h * (0.62f + 0.01f * dA), h * 0.030f, 1.1f, 2.3f, 0.0f, 1f, orbC, edgeA)
-            silk(h * (0.74f + 0.01f * dB), h * 0.034f, 0.9f, 1.9f, 2.1f, -1f, orbB, edgeA)
-            silk(h * (0.86f + 0.01f * dA), h * 0.028f, 1.3f, 2.7f, 4.0f, 1f, orbA, edgeA)
+            when (design) {
+                "aurora" -> {
+                    // Soft curtains of light swaying from the top of the screen.
+                    val cols = listOf(orbA, orbC, orbB)
+                    for (i in 0 until 3) {
+                        val cx = w * (0.2f + 0.3f * i)
+                        val path = Path()
+                        var y = -20f
+                        while (y <= h * 0.75f) {
+                            val u = y / h
+                            val x = cx + w * 0.10f * kotlin.math.sin(u * 7f + t * (if (i % 2 == 0) 1 else -1) + i * 2f) * (1f + 0.8f * voice) +
+                                w * 0.04f * dA
+                            if (y < 0f) path.moveTo(x, y) else path.lineTo(x, y)
+                            y += 24f
+                        }
+                        val col = cols[i]
+                        for ((wd, al) in listOf(0.34f to 0.35f, 0.22f to 0.5f, 0.11f to 0.7f)) {
+                            drawPath(
+                                path,
+                                brush = Brush.verticalGradient(
+                                    listOf(Color.Transparent, col.copy(alpha = col.alpha * al * (1f + 0.9f * voice)), Color.Transparent),
+                                    startY = 0f, endY = h * 0.75f,
+                                ),
+                                style = Stroke(w * wd, cap = androidx.compose.ui.graphics.StrokeCap.Round),
+                            )
+                        }
+                    }
+                }
+                "bokeh" -> {
+                    // Slow, out-of-focus lights rising and breathing with the voice.
+                    val cols = listOf(orbA, orbB, orbC)
+                    for (i in 0 until 16) {
+                        val fx = ((i * 0.6180339f) % 1f)
+                        val speed = 0.5f + (i % 4) * 0.25f
+                        val prog = ((i * 0.37f) + t / 6.2831855f * speed) % 1f
+                        val y = h * (1.1f - 1.25f * prog)
+                        val x = w * (0.05f + 0.9f * fx) + w * 0.03f * kotlin.math.sin(t * 2f + i)
+                        val r = w * (0.07f + 0.05f * ((i * 7) % 5) / 4f) * (1f + 0.5f * voice)
+                        val fade = kotlin.math.sin(prog * 3.1415927f)
+                        val col = cols[i % 3]
+                        orb(col.copy(alpha = (col.alpha * 2.2f * fade).coerceIn(0f, 1f)), x, y, r)
+                    }
+                }
+                "dunes" -> {
+                    // Broad, slow hills layered like sand.
+                    silk(h * (0.66f + 0.01f * dA), h * 0.060f, 0.55f, 1.2f, 0.5f, 1f, orbB.copy(alpha = orbB.alpha * 1.6f), edgeA)
+                    silk(h * (0.78f + 0.01f * dB), h * 0.055f, 0.7f, 1.5f, 2.4f, -1f, orbC.copy(alpha = orbC.alpha * 1.6f), edgeA)
+                    silk(h * (0.90f + 0.01f * dA), h * 0.045f, 0.9f, 1.8f, 4.1f, 1f, orbA.copy(alpha = orbA.alpha * 1.6f), edgeA)
+                }
+                else -> {
+                    silk(h * (0.62f + 0.01f * dA), h * 0.030f, 1.1f, 2.3f, 0.0f, 1f, orbC, edgeA)
+                    silk(h * (0.74f + 0.01f * dB), h * 0.034f, 0.9f, 1.9f, 2.1f, -1f, orbB, edgeA)
+                    silk(h * (0.86f + 0.01f * dA), h * 0.028f, 1.3f, 2.7f, 4.0f, 1f, orbA, edgeA)
+                }
+            }
         }
         content()
     }

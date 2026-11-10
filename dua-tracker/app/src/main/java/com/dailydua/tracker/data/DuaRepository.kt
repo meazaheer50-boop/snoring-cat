@@ -25,6 +25,7 @@ data class Settings(
     val showTranslation: Boolean = true,
     val keepScreenOn: Boolean = true,
     val background: String = "emerald",
+    val design: String = "silk",
 )
 
 class DuaRepository(private val context: Context) {
@@ -36,6 +37,7 @@ class DuaRepository(private val context: Context) {
     private val translation = booleanPreferencesKey("show_translation")
     private val keepOn = booleanPreferencesKey("keep_screen_on")
     private val backgroundKey = stringPreferencesKey("background")
+    private val designKey = stringPreferencesKey("background_design")
     /** Entries look like "2026-11-03|waking". */
     private val done = stringSetPreferencesKey("done")
     private val remindersKey = stringSetPreferencesKey("reminders")
@@ -52,6 +54,7 @@ class DuaRepository(private val context: Context) {
             showTranslation = p[translation] ?: true,
             keepScreenOn = p[keepOn] ?: true,
             background = p[backgroundKey] ?: "emerald",
+            design = p[designKey] ?: "silk",
         )
     }
 
@@ -80,6 +83,7 @@ class DuaRepository(private val context: Context) {
     suspend fun setShowTranslation(on: Boolean) { context.store.edit { it[translation] = on } }
     suspend fun setKeepScreenOn(on: Boolean) { context.store.edit { it[keepOn] = on } }
     suspend fun setBackground(id: String) { context.store.edit { it[backgroundKey] = id } }
+    suspend fun setDesign(id: String) { context.store.edit { it[designKey] = id } }
 
     suspend fun toggleDone(date: LocalDate, duaId: String) {
         val entry = "$date|$duaId"

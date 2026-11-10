@@ -79,7 +79,10 @@ import com.dailydua.tracker.ui.theme.Tokens
 fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunchHandled: () -> Unit = {}) {
     val ui by vm.state.collectAsStateWithLifecycle()
     DuaTheme(ui.settings.theme) {
-      androidx.compose.runtime.CompositionLocalProvider(LocalBackgroundStyle provides BackgroundStyle.byId(ui.settings.background)) {
+      androidx.compose.runtime.CompositionLocalProvider(
+          LocalBackgroundStyle provides BackgroundStyle.byId(ui.settings.background),
+          LocalBackgroundDesign provides ui.settings.design,
+      ) {
         GlassBackground {
             var tab by rememberSaveable { mutableStateOf(0) }
             var openId by rememberSaveable { mutableStateOf<String?>(null) }
