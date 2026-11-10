@@ -133,7 +133,12 @@ class ScreenTour {
                 val v = rule.runOnUiThread { com.dailydua.tracker.playback.AudioLevel.level }
                 v
             }
-            android.util.Log.i("ScreenTour", "AUDIO_LEVEL max=${samples.max()} min=${samples.min()} avg=${samples.average()}")
+            val report = "AUDIO_LEVEL max=${samples.max()} min=${samples.min()} avg=${samples.average()}"
+            android.util.Log.i("ScreenTour", report)
+            val dir = File(inst.targetContext.getExternalFilesDir(null), "shots").apply { mkdirs() }
+            File(dir, "audio_level.txt").writeText(report)
+            shell("mkdir -p /data/local/tmp/shots")
+            shell("cp ${dir.absolutePath}/audio_level.txt /data/local/tmp/shots/audio_level.txt")
             back()
             shot("09_today_mini_player")
         }
