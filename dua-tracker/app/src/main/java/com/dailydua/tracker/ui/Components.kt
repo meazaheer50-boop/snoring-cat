@@ -64,6 +64,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.withFrameNanos
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -269,17 +272,20 @@ fun rememberReduceMotion(): Boolean {
 fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
     val c = Tokens.colors
     val reduceMotion = rememberReduceMotion()
-    val infinite = rememberInfiniteTransition(label = "ambient")
-    val driftA = infinite.animateFloat(
-        -1f, 1f, infiniteRepeatable(tween(13000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "driftA",
-    )
-    val driftB = infinite.animateFloat(
-        1f, -1f, infiniteRepeatable(tween(17000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "driftB",
-    )
-    // One full turn of the wave phase; every wave uses whole multiples so the loop is seamless.
-    val flow = infinite.animateFloat(
-        0f, 6.2831855f, infiniteRepeatable(tween(36000, easing = LinearEasing)), label = "flow",
-    )
+    // One clock at ~30 fps drives every wave, instead of three 60 fps transitions; it
+    // stops entirely while the app is in the background.
+    var clock by remember { mutableLongStateOf(0L) }
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    LaunchedEffect(reduceMotion) {
+        if (reduceMotion) return@LaunchedEffect
+        lifecycleOwner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+            var last = 0L
+            while (true) {
+                val n = withFrameNanos { it }
+                if (n - last >= 30_000_000L) { last = n; clock = n / 1_000_000L }
+            }
+        }
+    }
 
     // The background moves with the recitation: waves swell and glows brighten with the voice.
     // Only the on/off change is observed, so the position ticks do not recompose the whole app.
@@ -308,9 +314,10 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
             val w = size.width
             val h = size.height
             val voice = if (reduceMotion) 0f else AudioLevel.level * playGain
-            val dA = if (reduceMotion) 0f else driftA.value
-            val dB = if (reduceMotion) 0f else driftB.value
-            val t = if (reduceMotion) 1.2f else flow.value
+            val ms = clock
+            val dA = if (reduceMotion) 0f else kotlin.math.sin(ms * 6.2831855f / 26000f)
+            val dB = if (reduceMotion) 0f else -kotlin.math.sin(ms * 6.2831855f / 34000f)
+            val t = if (reduceMotion) 1.2f else (ms % 36000L) / 36000f * 6.2831855f
 
             fun orb(color: Color, x: Float, y: Float, radius: Float) {
                 val center = Offset(x, y)
@@ -337,7 +344,7 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                 val top = Path()
                 var x = 0f
                 top.moveTo(0f, yAt(0f))
-                while (x < w) { x += 14f; top.lineTo(minOf(x, w), yAt(minOf(x, w))) }
+                while (x < w) { x += 28f; top.lineTo(minOf(x, w), yAt(minOf(x, w))) }
                 val body = Path().apply {
                     addPath(top)
                     lineTo(w, h)
@@ -368,10 +375,10 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                             val x = cx + w * 0.10f * kotlin.math.sin(u * 7f + t * (if (i % 2 == 0) 1 else -1) + i * 2f) * (1f + 0.8f * voice) +
                                 w * 0.04f * dA
                             if (y < 0f) path.moveTo(x, y) else path.lineTo(x, y)
-                            y += 24f
+                            y += 48f
                         }
                         val col = cols[i]
-                        for ((wd, al) in listOf(0.34f to 0.35f, 0.22f to 0.5f, 0.11f to 0.7f)) {
+                        for ((wd, al) in listOf(0.30f to 0.45f, 0.12f to 0.8f)) {
                             drawPath(
                                 path,
                                 brush = Brush.verticalGradient(
@@ -386,7 +393,7 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                 "bokeh" -> {
                     // Slow, out-of-focus lights rising and breathing with the voice.
                     val cols = listOf(orbA, orbB, orbC)
-                    for (i in 0 until 16) {
+                    for (i in 0 until 10) {
                         val fx = ((i * 0.6180339f) % 1f)
                         val speed = 0.5f + (i % 4) * 0.25f
                         val prog = ((i * 0.37f) + t / 6.2831855f * speed) % 1f
