@@ -85,6 +85,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -524,7 +525,7 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                     // Slow rays of light turning around a point below the screen.
                     val centre = Offset(w * 0.5f, h * 1.08f)
                     val cols = listOf(orbA, orbB, orbC)
-                    androidx.compose.ui.graphics.drawscope.rotate((ms % 120000L) / 120000f * 360f, centre) {
+                    rotate((ms % 120000L) / 120000f * 360f, centre) {
                         val stops = ArrayList<Color>()
                         for (k in 0 until 6) {
                             val col = cols[k % 3].copy(alpha = (cols[k % 3].alpha * (1.5f + voice)).coerceAtMost(1f))
