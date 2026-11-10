@@ -21,6 +21,9 @@ import android.os.Build
 import android.provider.Settings as AndroidSettings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -101,6 +104,12 @@ fun SettingsScreen(ui: UiState, vm: DuaViewModel) {
             Column {
                 Group("Appearance") {
                     Padded {
+                        Text("Background", style = DuaType.body.copy(fontWeight = FontWeight.SemiBold), color = c.ink)
+                        Spacer(Modifier.height(12.dp))
+                        BackgroundPicker(settings.background, vm::setBackground)
+                        Spacer(Modifier.height(18.dp))
+                        Text("Theme", style = DuaType.body.copy(fontWeight = FontWeight.SemiBold), color = c.ink)
+                        Spacer(Modifier.height(10.dp))
                         Segmented(
                             options = listOf("System", "Light", "Dark"),
                             selected = settings.theme.ordinal,
@@ -448,4 +457,39 @@ internal fun ReminderDialog(
             }
         },
     )
+}
+
+
+@Composable
+private fun BackgroundPicker(selected: String, onSelect: (String) -> Unit) {
+    val c = Tokens.colors
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        BackgroundStyle.all.forEach { st ->
+            val on = st.id == selected
+            Column(
+                Modifier.bounceClick(role = Role.RadioButton, onClickLabel = st.label) { onSelect(st.id) },
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Box(
+                    Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (st.waves) Brush.linearGradient(listOf(st.a, st.c, st.b))
+                            else Brush.linearGradient(listOf(c.surface100, c.surface200)),
+                        )
+                        .border(if (on) 3.dp else 1.dp, if (on) c.brand else c.hairline, CircleShape),
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    st.label, style = DuaType.caption,
+                    color = if (on) c.brand else c.inkMuted,
+                    fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                )
+            }
+        }
+    }
 }

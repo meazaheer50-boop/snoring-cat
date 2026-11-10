@@ -288,9 +288,15 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
     }.collectAsStateWithLifecycle(false)
     val playGain by animateFloatAsState(if (isPlaying) 1f else 0f, tween(700), label = "playGain")
 
-    val bgTop by animateColorAsState(c.surface100, tween(450), label = "bgTop")
-    val bgMid by animateColorAsState(c.bgMid, tween(450), label = "bgMid")
-    val bgBot by animateColorAsState(c.surface200, tween(450), label = "bgBot")
+    val style = LocalBackgroundStyle.current
+    val custom = style.id != "emerald"
+    val base = if (c.isDark) style.darkBase else style.lightBase
+    val orbA = if (custom) style.a.copy(alpha = if (c.isDark) 0.28f else 0.22f) else c.orbPrimary
+    val orbB = if (custom) style.b.copy(alpha = if (c.isDark) 0.20f else 0.18f) else c.orbSecondary
+    val orbC = if (custom) style.c.copy(alpha = if (c.isDark) 0.20f else 0.16f) else c.orbTertiary
+    val bgTop by animateColorAsState(base ?: c.surface100, tween(450), label = "bgTop")
+    val bgMid by animateColorAsState(base ?: c.bgMid, tween(450), label = "bgMid")
+    val bgBot by animateColorAsState(base ?: c.surface200, tween(450), label = "bgBot")
 
     Box(
         Modifier
@@ -313,8 +319,9 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                     center = center,
                 )
             }
-            orb(c.orbSecondary, w * (0.90f + 0.05f * dA), h * (0.08f + 0.03f * dB), w * 0.70f * (1f + 0.22f * voice))
-            orb(c.orbPrimary, w * (0.06f + 0.06f * dB), h * (0.30f + 0.04f * dA), w * 0.78f * (1f + 0.18f * voice))
+            if (!style.waves) return@Canvas
+            orb(orbB, w * (0.90f + 0.05f * dA), h * (0.08f + 0.03f * dB), w * 0.70f * (1f + 0.22f * voice))
+            orb(orbA, w * (0.06f + 0.06f * dB), h * (0.30f + 0.04f * dA), w * 0.78f * (1f + 0.18f * voice))
 
             // Layered silk: three slow ribbons of colour rolling across the lower screen.
             fun silk(baseY: Float, ampIn: Float, k1: Float, k2: Float, phase: Float, dir: Float, fillIn: Color, edge: Color) {
@@ -347,9 +354,9 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                 drawPath(top, color = edge, style = Stroke(1.2.dp.toPx()))
             }
             val edgeA = Color.White.copy(alpha = if (c.isDark) 0.10f else 0.55f)
-            silk(h * (0.62f + 0.01f * dA), h * 0.030f, 1.1f, 2.3f, 0.0f, 1f, c.orbTertiary, edgeA)
-            silk(h * (0.74f + 0.01f * dB), h * 0.034f, 0.9f, 1.9f, 2.1f, -1f, c.orbSecondary, edgeA)
-            silk(h * (0.86f + 0.01f * dA), h * 0.028f, 1.3f, 2.7f, 4.0f, 1f, c.orbPrimary, edgeA)
+            silk(h * (0.62f + 0.01f * dA), h * 0.030f, 1.1f, 2.3f, 0.0f, 1f, orbC, edgeA)
+            silk(h * (0.74f + 0.01f * dB), h * 0.034f, 0.9f, 1.9f, 2.1f, -1f, orbB, edgeA)
+            silk(h * (0.86f + 0.01f * dA), h * 0.028f, 1.3f, 2.7f, 4.0f, 1f, orbA, edgeA)
         }
         content()
     }
