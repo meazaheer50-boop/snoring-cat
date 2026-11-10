@@ -34,14 +34,28 @@ fun DuaTheme(mode: ThemeMode, accentDark: Color? = null, accentLight: Color? = n
     val base = if (dark) DarkDuaColors else LightDuaColors
     val accent = if (dark) accentDark else accentLight
     // Retint the brand colours (tabs, buttons, highlights) to follow the chosen background colour.
-    val c = if (accent == null) base else if (dark) base.copy(
+    fun tint(col: Color, k: Float) = lerp(col, accent ?: col, k).copy(alpha = col.alpha)
+    val tinted = if (accent == null) base else base.copy(
+        surfaceCard = tint(base.surfaceCard, if (dark) 0.30f else 0.15f),
+        glassFillTop = tint(base.glassFillTop, if (dark) 0.35f else 0.18f),
+        glassFillBottom = tint(base.glassFillBottom, if (dark) 0.35f else 0.18f),
+        glassElevatedTop = tint(base.glassElevatedTop, if (dark) 0.35f else 0.18f),
+        glassElevatedBottom = tint(base.glassElevatedBottom, if (dark) 0.35f else 0.18f),
+        glassBorderTop = tint(base.glassBorderTop, 0.35f),
+        glassBorderBottom = tint(base.glassBorderBottom, 0.35f),
+        inkMuted = tint(base.inkMuted, if (dark) 0.40f else 0.25f),
+        ink = tint(base.ink, if (dark) 0.10f else 0.12f),
+        border = tint(base.border, 0.4f),
+        hairline = tint(base.hairline, 0.4f),
+    )
+    val c = if (accent == null) base else if (dark) tinted.copy(
         brand = accent,
         onBrand = Color(0xFF14090F),
         brandSoft = accent.copy(alpha = 0.20f),
         glassBrandTop = lerp(accent, Color.Black, 0.55f).copy(alpha = 0.58f),
         glassBrandBottom = lerp(accent, Color.Black, 0.75f).copy(alpha = 0.42f),
         glassBrandBorder = accent.copy(alpha = 0.45f),
-    ) else base.copy(
+    ) else tinted.copy(
         brand = accent,
         onBrand = Color.White,
         brandSoft = accent.copy(alpha = 0.14f),
