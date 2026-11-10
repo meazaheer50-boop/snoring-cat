@@ -409,6 +409,8 @@ fun MushafReader(
                         FavoriteButton(favorite, onToggleFavorite)
                         Spacer(Modifier.width(8.dp))
                         ReminderButton(onReminder)
+                        Spacer(Modifier.width(8.dp))
+                        RepeatButton()
                         Spacer(Modifier.weight(1f))
                         TextSizeControl(arabicSize, onSize)
                     }

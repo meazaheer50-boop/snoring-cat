@@ -69,6 +69,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import com.dailydua.tracker.playback.AudioLevel
+import com.dailydua.tracker.playback.PlayerHub
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -276,6 +281,13 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
         0f, 6.2831855f, infiniteRepeatable(tween(36000, easing = LinearEasing)), label = "flow",
     )
 
+    // The background moves with the recitation: waves swell and glows brighten with the voice.
+    // Only the on/off change is observed, so the position ticks do not recompose the whole app.
+    val isPlaying by remember {
+        PlayerHub.state.map { it.isPlaying }.distinctUntilChanged()
+    }.collectAsStateWithLifecycle(false)
+    val playGain by animateFloatAsState(if (isPlaying) 1f else 0f, tween(700), label = "playGain")
+
     val bgTop by animateColorAsState(c.surface100, tween(450), label = "bgTop")
     val bgMid by animateColorAsState(c.bgMid, tween(450), label = "bgMid")
     val bgBot by animateColorAsState(c.surface200, tween(450), label = "bgBot")
@@ -288,6 +300,7 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
         Canvas(Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
+            val voice = if (reduceMotion) 0f else AudioLevel.level * playGain
             val dA = if (reduceMotion) 0f else driftA.value
             val dB = if (reduceMotion) 0f else driftB.value
             val t = if (reduceMotion) 1.2f else flow.value
@@ -300,11 +313,13 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                     center = center,
                 )
             }
-            orb(c.orbSecondary, w * (0.90f + 0.05f * dA), h * (0.08f + 0.03f * dB), w * 0.70f)
-            orb(c.orbPrimary, w * (0.06f + 0.06f * dB), h * (0.30f + 0.04f * dA), w * 0.78f)
+            orb(c.orbSecondary, w * (0.90f + 0.05f * dA), h * (0.08f + 0.03f * dB), w * 0.70f * (1f + 0.22f * voice))
+            orb(c.orbPrimary, w * (0.06f + 0.06f * dB), h * (0.30f + 0.04f * dA), w * 0.78f * (1f + 0.18f * voice))
 
             // Layered silk: three slow ribbons of colour rolling across the lower screen.
-            fun silk(baseY: Float, amp: Float, k1: Float, k2: Float, phase: Float, dir: Float, fill: Color, edge: Color) {
+            fun silk(baseY: Float, ampIn: Float, k1: Float, k2: Float, phase: Float, dir: Float, fillIn: Color, edge: Color) {
+                val amp = ampIn * (1f + 2.4f * voice + 0.25f * playGain)
+                val fill = fillIn.copy(alpha = (fillIn.alpha * (1f + 1.1f * voice)).coerceAtMost(1f))
                 fun yAt(x: Float): Float {
                     val u = x / w
                     return baseY +
@@ -466,7 +481,7 @@ fun DuaRow(dua: Dua, done: Boolean, favorite: Boolean = false, onFavorite: (() -
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        CheckCircle(done)
+        if (onFavorite != null) FavoriteButton(favorite, onFavorite, size = 44.dp) else CheckCircle(done)
         Column(Modifier.weight(1f)) {
             Text(dua.title, style = DuaType.title, color = c.ink)
             Spacer(Modifier.height(4.dp))
@@ -490,9 +505,6 @@ fun DuaRow(dua: Dua, done: Boolean, favorite: Boolean = false, onFavorite: (() -
                     Text("· Done", style = DuaType.caption.copy(fontWeight = FontWeight.SemiBold), color = c.brand)
                 }
             }
-        }
-        if (onFavorite != null) {
-            FavoriteButton(favorite, onFavorite, size = 40.dp)
         }
         if (hasAudio) {
             Box(
@@ -745,5 +757,49 @@ fun ReminderButton(onClick: () -> Unit, size: androidx.compose.ui.unit.Dp = 44.d
         contentAlignment = Alignment.Center,
     ) {
         Icon(AppIcons.Clock, contentDescription = "Set a reminder", tint = c.inkMuted, modifier = Modifier.size(size * 0.5f))
+    }
+}
+
+/** Repeat control: choose how many rounds to play. Shows the current round while playing. */
+@Composable
+fun RepeatButton(modifier: Modifier = Modifier, alwaysLabel: Boolean = false) {
+    val c = Tokens.colors
+    val ps by com.dailydua.tracker.playback.PlayerHub.state.collectAsStateWithLifecycle()
+    var open by remember { mutableStateOf(false) }
+    val on = ps.rounds != 1
+    val total = if (ps.rounds == 0) "\u221E" else "${ps.rounds}"
+    val label = when {
+        !on -> "Repeat"
+        ps.queueIds.isNotEmpty() -> "${ps.round} / $total"
+        else -> if (ps.rounds == 0) "\u221E" else "${ps.rounds}\u00D7"
+    }
+    Box(modifier) {
+        Row(
+            Modifier
+                .heightIn(min = 44.dp)
+                .testTag("repeat")
+                .glassSurface(shape = CircleShape, variant = if (on) GlassVariant.SOFT_EMERALD else GlassVariant.FROST)
+                .bounceClick(pressedScale = 0.92f, role = Role.Button, onClickLabel = "Choose how many times to repeat") { open = true }
+                .padding(horizontal = if (on || alwaysLabel) 14.dp else 13.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(AppIcons.Repeat, contentDescription = "Repeat", tint = if (on) c.brand else c.inkMuted, modifier = Modifier.size(18.dp))
+            if (on || alwaysLabel) Text(label, style = DuaType.caption.copy(fontWeight = FontWeight.Bold), color = if (on) c.brand else c.inkMuted, maxLines = 1)
+        }
+        androidx.compose.material3.DropdownMenu(expanded = open, onDismissRequest = { open = false }, modifier = Modifier.background(c.surface200)) {
+            listOf(1, 2, 3, 5, 7, 10, 33, 0).forEach { n ->
+                androidx.compose.material3.DropdownMenuItem(
+                    text = {
+                        Text(
+                            when (n) { 1 -> "No repeat"; 0 -> "Repeat forever"; else -> "Repeat $n times" },
+                            color = if (n == ps.rounds) c.brand else c.ink,
+                            fontWeight = if (n == ps.rounds) FontWeight.Bold else FontWeight.Normal,
+                        )
+                    },
+                    onClick = { com.dailydua.tracker.playback.PlayerHub.setRounds(n); open = false },
+                )
+            }
+        }
     }
 }

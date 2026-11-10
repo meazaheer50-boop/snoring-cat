@@ -119,11 +119,7 @@ fun PlaylistScreen(ui: UiState, vm: DuaViewModel, onOpen: (Dua) -> Unit) {
                     onClick = { if (queue.isNotEmpty()) { ask(); PlayerHub.playQueue(queue) } },
                     modifier = Modifier.weight(1f),
                 )
-                PillButton(
-                    if (ps.repeatAll) "Repeat: on" else "Repeat: off",
-                    filled = false,
-                    onClick = { PlayerHub.setRepeatAll(!ps.repeatAll) },
-                )
+                RepeatButton(alwaysLabel = true)
             }
         }
         item { SectionLabel("Your playlist", Modifier.padding(top = 8.dp), badge = "${queue.size}") }

@@ -26,6 +26,9 @@ object PlayerHub {
         val queueIds: List<String> = emptyList(),
         val index: Int = 0,
         val repeatAll: Boolean = false,
+        /** How many times the queue plays; 0 means forever. */
+        val rounds: Int = 1,
+        val round: Int = 1,
         val hasNext: Boolean = false,
         val hasPrevious: Boolean = false,
     )
@@ -35,6 +38,8 @@ object PlayerHub {
 
     private var controller: MediaController? = null
     private var started = false
+    private var rounds = 1
+    private var round = 1
     private val pending = mutableListOf<(MediaController) -> Unit>()
     private val handler = Handler(Looper.getMainLooper())
     private val ticker = object : Runnable {
@@ -55,6 +60,15 @@ object PlayerHub {
             controller = c
             c.addListener(object : Player.Listener {
                 override fun onEvents(player: Player, events: Player.Events) = refresh()
+                override fun onPlaybackStateChanged(state: Int) {
+                    // The queue finished: go round again if more rounds were asked for.
+                    if (state == Player.STATE_ENDED && (rounds == 0 || round < rounds)) {
+                        round++
+                        c.seekTo(0, 0L)
+                        c.play()
+                        refresh()
+                    }
+                }
             })
             pending.forEach { it(c) }
             pending.clear()
@@ -73,6 +87,8 @@ object PlayerHub {
             queueIds = (0 until c.mediaItemCount).map { c.getMediaItemAt(it).mediaId },
             index = c.currentMediaItemIndex,
             repeatAll = c.repeatMode == Player.REPEAT_MODE_ALL,
+            rounds = rounds,
+            round = round,
             hasNext = c.hasNextMediaItem(),
             hasPrevious = c.hasPreviousMediaItem(),
         )
@@ -123,6 +139,7 @@ object PlayerHub {
     /** Plays [duas] one after another, starting at [startIndex]. */
     fun playQueue(duas: List<Dua>, startIndex: Int = 0, startMs: Long = 0) {
         if (duas.isEmpty()) return
+        round = 1
         withController { c ->
             c.setMediaItems(duas.map(::item), startIndex.coerceIn(0, duas.lastIndex), startMs)
             c.prepare()
@@ -151,5 +168,12 @@ object PlayerHub {
     fun next() = withController { it.seekToNextMediaItem() }
     fun previous() = withController { it.seekToPreviousMediaItem() }
     fun seekTo(ms: Long) = withController { it.seekTo(ms) }
+    /** Play the queue [count] times (0 = forever, 1 = once). */
+    fun setRounds(count: Int) {
+        rounds = count.coerceAtLeast(0)
+        if (rounds != 0 && round > rounds) round = rounds
+        refresh()
+    }
+
     fun setRepeatAll(on: Boolean) = withController { it.repeatMode = if (on) Player.REPEAT_MODE_ALL else Player.REPEAT_MODE_OFF }
 }
