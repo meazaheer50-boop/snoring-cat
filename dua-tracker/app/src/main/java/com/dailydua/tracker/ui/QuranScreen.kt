@@ -261,6 +261,7 @@ fun Pill(
     filled: Boolean,
     modifier: Modifier = Modifier,
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    horizontalPadding: androidx.compose.ui.unit.Dp = 18.dp,
     onClick: () -> Unit,
 ) {
     val c = Tokens.colors
@@ -272,7 +273,7 @@ fun Pill(
                 if (filled) Modifier.background(c.brand) else Modifier.glassSurface(shape = CircleShape, variant = GlassVariant.SOFT_EMERALD),
             )
             .bounceClick(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 12.dp),
+            .padding(horizontal = horizontalPadding, vertical = 12.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -432,12 +433,14 @@ fun MushafReader(
                         text = if (pagesMode) "Text" else "Pages",
                         filled = false,
                         modifier = Modifier.weight(1f).testTag("verseToggle"),
+                        horizontalPadding = 8.dp,
                     ) { pagesMode = !pagesMode }
                     if (!pagesMode) {
                         Pill(
                             text = if (showEnglish) "Arabic" else "English",
                             filled = false,
                             modifier = Modifier.weight(1f).testTag("englishToggle"),
+                            horizontalPadding = 8.dp,
                         ) { showEnglish = !showEnglish }
                     }
                     Box(
@@ -504,7 +507,7 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, ar
                         arabicDigits(n),
                         style = TextStyle(
                             fontFamily = QuranFont,
-                            fontSize = (arabicSize * (if (n.length > 2) 0.34f else 0.44f)).sp,
+                            fontSize = (arabicSize * (if (n.length > 2) 0.42f else 0.56f)).sp,
                             color = ink,
                             textDirection = TextDirection.Rtl,
                         ),
