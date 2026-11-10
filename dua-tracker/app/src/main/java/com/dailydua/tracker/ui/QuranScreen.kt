@@ -455,11 +455,16 @@ fun MushafReader(
                         ) { showEnglish = !showEnglish }
                     }
                     if (dua != null) {
-                        Pill(
-                            text = if (playingThis) "Pause" else "Listen",
-                            filled = true,
-                            icon = if (playingThis) AppIcons.Pause else Icons.Rounded.PlayArrow,
-                        ) { ask(); if (ps.mediaId == dua.id) PlayerHub.toggle() else PlayerHub.playDua(dua) }
+                        Box(
+                            Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(c.brand)
+                                .bounceClick(role = Role.Button, onClickLabel = if (playingThis) "Pause" else "Listen") {
+                                    ask(); if (ps.mediaId == dua.id) PlayerHub.toggle() else PlayerHub.playDua(dua)
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) { Icon(if (playingThis) AppIcons.Pause else Icons.Rounded.PlayArrow, contentDescription = null, tint = c.onBrand) }
                     }
                 }
                 }
@@ -585,7 +590,7 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, ar
                 val text = buildAnnotatedString {
                     verses.forEach { (n, ar, _) ->
                         append(ar)
-                        append(" ")
+                        append("\u00A0\u00A0")
                         appendInlineContent("v$n", n)
                         append(" ")
                     }
@@ -605,7 +610,7 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, ar
                     Text(
                         inlineContent = markers,
                         text = buildAnnotatedString {
-                            append(ar); append(" ")
+                            append(ar); append("\u00A0\u00A0")
                             appendInlineContent("v$n", n)
                         },
                         style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Start, lineHeight = (arabicSize * 2f).sp),
