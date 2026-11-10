@@ -58,6 +58,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -383,17 +385,40 @@ private fun ReminderDialog(
                         ) { Text(n, style = DuaType.caption.copy(fontWeight = FontWeight.Bold), color = if (on) c.onBrand else c.ink) }
                     }
                 }
-                val duaTitle = SampleDuas.all.getOrNull(duaIndex)?.title ?: "None"
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(c.hairline)
-                        .clickable { duaIndex = if (duaIndex + 1 >= SampleDuas.all.size) -1 else duaIndex + 1 }
-                        .padding(12.dp),
-                ) {
-                    Text("OPENS (TAP TO CHANGE)", style = DuaType.label, color = c.inkMuted)
-                    Text(duaTitle, style = DuaType.body.copy(fontWeight = FontWeight.SemiBold), color = c.ink)
+                val duaTitle = SampleDuas.all.getOrNull(duaIndex)?.title ?: "None, just open the app"
+                var menuOpen by remember { mutableStateOf(false) }
+                Box(Modifier.fillMaxWidth()) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(c.hairline)
+                            .clickable(role = androidx.compose.ui.semantics.Role.DropdownList) { menuOpen = true }
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("OPENS", style = DuaType.label, color = c.inkMuted)
+                            Text(duaTitle, style = DuaType.body.copy(fontWeight = FontWeight.SemiBold), color = c.ink, maxLines = 1)
+                        }
+                        Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Choose a dua", tint = c.inkMuted)
+                    }
+                    DropdownMenu(
+                        expanded = menuOpen,
+                        onDismissRequest = { menuOpen = false },
+                        modifier = Modifier.heightIn(max = 320.dp).background(c.surface200),
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("None, just open the app", color = c.ink) },
+                            onClick = { duaIndex = -1; menuOpen = false },
+                        )
+                        SampleDuas.all.forEachIndexed { i, d ->
+                            DropdownMenuItem(
+                                text = { Text(d.title, color = if (i == duaIndex) c.brand else c.ink, fontWeight = if (i == duaIndex) FontWeight.Bold else FontWeight.Normal) },
+                                onClick = { duaIndex = i; menuOpen = false },
+                            )
+                        }
+                    }
                 }
             }
         },

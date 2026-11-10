@@ -191,6 +191,9 @@ class ScreenTour {
             shot("19_settings_reminders")
             rule.onNodeWithText("+ Add a custom reminder").performClick()
             shot("20_reminder_dialog")
+            rule.onNodeWithContentDescription("Choose a dua").performClick()
+            shot("20b_reminder_dropdown", 1000)
+            back()
             rule.onNodeWithText("Cancel").performClick()
         }
         step("dark") {
