@@ -94,6 +94,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.dailydua.tracker.data.Dua
 import com.dailydua.tracker.ui.theme.DuaType
+import com.dailydua.tracker.ui.theme.QuranFont
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.graphics.PathOperation
 import com.dailydua.tracker.ui.theme.Tokens
 import kotlinx.coroutines.delay
 
@@ -296,6 +300,7 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
 
     val style = LocalBackgroundStyle.current
     val design = LocalBackgroundDesign.current
+    val textMeasurer = rememberTextMeasurer()
     val custom = style.id != "emerald"
     val base = if (c.isDark) style.darkBase else style.lightBase
     val orbA = if (custom) style.a.copy(alpha = if (c.isDark) 0.28f else 0.22f) else c.orbPrimary
@@ -470,6 +475,100 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                         drawCircle(col.copy(alpha = 0.12f * fade), r * 3.5f, Offset(x, y))
                         drawCircle(col.copy(alpha = 0.9f * fade), r, Offset(x, y))
                     }
+                }
+                "mihrab" -> {
+                    // Nested prayer-niche arches glowing softly from within.
+                    val cx = w * 0.5f
+                    val breathe = 0.5f + 0.5f * kotlin.math.sin(ms / 5200f)
+                    orb(orbB.copy(alpha = (orbB.alpha * (1.8f + 0.8f * breathe + voice)).coerceAtMost(1f)), cx, h * 0.95f, w * (0.8f + 0.3f * voice))
+                    for (k in 0 until 4) {
+                        val hw = w * (0.44f - 0.085f * k)
+                        val base = h * 1.02f
+                        val spring = h * (0.42f + 0.07f * k)
+                        val top = h * (0.16f + 0.085f * k)
+                        val arch = Path().apply {
+                            moveTo(cx - hw, base)
+                            lineTo(cx - hw, spring)
+                            cubicTo(cx - hw, spring - (spring - top) * 0.62f, cx - hw * 0.30f, top + (spring - top) * 0.12f, cx, top)
+                            cubicTo(cx + hw * 0.30f, top + (spring - top) * 0.12f, cx + hw, spring - (spring - top) * 0.62f, cx + hw, spring)
+                            lineTo(cx + hw, base)
+                        }
+                        val col = if (k % 2 == 0) style.b else style.a
+                        val a = (if (c.isDark) 0.30f else 0.40f) * (1f - 0.15f * k) * (0.75f + 0.25f * breathe + 0.6f * voice)
+                        drawPath(arch, col.copy(alpha = a.coerceAtMost(1f) * 0.25f), style = Stroke(6.dp.toPx()))
+                        drawPath(arch, col.copy(alpha = a.coerceAtMost(1f)), style = Stroke(1.3.dp.toPx()))
+                    }
+                }
+                "lanterns" -> {
+                    // Ramadan lanterns hanging from above, swaying and glowing.
+                    val xs = floatArrayOf(0.14f, 0.38f, 0.63f, 0.87f)
+                    val drops = floatArrayOf(0.20f, 0.30f, 0.16f, 0.26f)
+                    val sizes = floatArrayOf(0.9f, 1.15f, 0.8f, 1.0f)
+                    for (i in 0 until 4) {
+                        val px = w * xs[i]
+                        val ly = h * drops[i]
+                        val sc = w * 0.06f * sizes[i]
+                        val angle = 5f * kotlin.math.sin(ms / (2300f + i * 300f) + i * 1.7f)
+                        rotate(angle, Offset(px, 0f)) {
+                            val warm = style.b
+                            val flicker = 0.85f + 0.15f * kotlin.math.sin(ms / (180f + i * 37f))
+                            drawLine(warm.copy(alpha = 0.35f), Offset(px, 0f), Offset(px, ly - sc * 1.6f), strokeWidth = 1.dp.toPx())
+                            orb(warm.copy(alpha = ((if (c.isDark) 0.35f else 0.28f) * flicker * (1f + voice)).coerceAtMost(1f)), px, ly, sc * 4.5f)
+                            val body = Path().apply {
+                                moveTo(px, ly - sc * 1.6f)
+                                quadraticTo(px + sc * 1.1f, ly - sc * 0.6f, px + sc * 0.8f, ly + sc * 0.6f)
+                                quadraticTo(px + sc * 0.5f, ly + sc * 1.3f, px, ly + sc * 1.9f)
+                                quadraticTo(px - sc * 0.5f, ly + sc * 1.3f, px - sc * 0.8f, ly + sc * 0.6f)
+                                quadraticTo(px - sc * 1.1f, ly - sc * 0.6f, px, ly - sc * 1.6f)
+                                close()
+                            }
+                            drawPath(body, warm.copy(alpha = 0.22f * flicker))
+                            drawPath(body, warm.copy(alpha = 0.85f), style = Stroke(1.4.dp.toPx()))
+                            drawLine(warm.copy(alpha = 0.6f), Offset(px - sc * 0.8f, ly + sc * 0.6f), Offset(px + sc * 0.8f, ly + sc * 0.6f), strokeWidth = 1.dp.toPx())
+                            drawCircle(Color.White.copy(alpha = 0.85f * flicker), sc * 0.22f, Offset(px, ly + sc * 0.2f))
+                        }
+                    }
+                }
+                "calligraphy" -> {
+                    // Words of remembrance in large script, a band of light passing over them.
+                    val phrases = listOf("سُبۡحَانَ ٱللَّهِ", "ٱلۡحَمۡدُ لِلَّهِ", "ٱللَّهُ أَكۡبَرُ", "لَآ إِلَٰهَ إِلَّا ٱللَّهُ")
+                    val cycle = 12000L
+                    val idx = ((ms / cycle) % phrases.size).toInt()
+                    val local = (ms % cycle) / cycle.toFloat()
+                    val fade = kotlin.math.min(1f, kotlin.math.min(local * 5f, (1f - local) * 5f))
+                    val layout = textMeasurer.measure(
+                        phrases[idx],
+                        androidx.compose.ui.text.TextStyle(fontFamily = QuranFont, fontSize = (w * 0.15f).toSp()),
+                    )
+                    val tl = Offset((w - layout.size.width) / 2f, h * 0.40f - layout.size.height / 2f)
+                    val sweep = w * (-0.5f + 2f * ((ms % 6000L) / 6000f))
+                    orb(orbA.copy(alpha = (orbA.alpha * (1.2f + voice)).coerceAtMost(1f)), w * 0.5f, h * 0.40f, w * 0.7f)
+                    drawText(
+                        layout,
+                        brush = Brush.linearGradient(
+                            listOf(style.a.copy(alpha = 0.35f), Color.White.copy(alpha = 0.95f), style.b.copy(alpha = 0.35f)),
+                            start = Offset(sweep - w * 0.3f, 0f), end = Offset(sweep + w * 0.3f, 0f),
+                        ),
+                        topLeft = tl,
+                        alpha = (if (c.isDark) 0.55f else 0.45f) * fade * (1f + 0.4f * voice).coerceAtMost(1.4f),
+                    )
+                }
+                "hilal" -> {
+                    // A new crescent moon over quiet desert dunes at dusk.
+                    val mx = w * 0.72f
+                    val my = h * 0.18f
+                    val r = w * 0.10f
+                    orb(style.b.copy(alpha = if (c.isDark) 0.22f else 0.18f), mx, my, w * (0.6f + 0.2f * voice))
+                    val crescent = Path().apply {
+                        op(
+                            Path().apply { addOval(androidx.compose.ui.geometry.Rect(Offset(mx, my), r)) },
+                            Path().apply { addOval(androidx.compose.ui.geometry.Rect(Offset(mx + r * 0.42f, my - r * 0.22f), r * 0.9f)) },
+                            PathOperation.Difference,
+                        )
+                    }
+                    drawPath(crescent, Color(0xFFFFF4D6).copy(alpha = if (c.isDark) 0.95f else 0.9f))
+                    silk(h * (0.74f + 0.01f * dA), h * 0.05f, 0.5f, 1.1f, 0.4f, 1f, orbB.copy(alpha = (orbB.alpha * 1.8f).coerceAtMost(1f)), edgeA)
+                    silk(h * (0.84f + 0.01f * dB), h * 0.045f, 0.65f, 1.4f, 2.6f, -1f, orbA.copy(alpha = (orbA.alpha * 1.8f).coerceAtMost(1f)), edgeA)
                 }
                 "dunes" -> {
                     // Broad, slow hills layered like sand.
