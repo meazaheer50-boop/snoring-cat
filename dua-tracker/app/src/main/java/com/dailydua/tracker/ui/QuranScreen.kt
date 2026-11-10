@@ -598,7 +598,7 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, ar
                 Text(
                     text,
                     inlineContent = markers,
-                    style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Start, lineHeight = (arabicSize * 2f).sp),
+                    style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Justify, lineHeight = (arabicSize * 2f).sp),
                     color = c.ink,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -613,7 +613,7 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, ar
                             append(ar); append("\u00A0\u00A0")
                             appendInlineContent("v$n", n)
                         },
-                        style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Start, lineHeight = (arabicSize * 2f).sp),
+                        style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Justify, lineHeight = (arabicSize * 2f).sp),
                         color = c.ink,
                         modifier = Modifier.fillMaxWidth(),
                     )
