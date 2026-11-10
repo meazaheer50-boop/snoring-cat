@@ -408,6 +408,74 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                         )
                     }
                 }
+                "mist" -> {
+                    // Huge soft clouds of colour drifting slowly around the screen.
+                    val cols = listOf(orbA, orbC, orbB, orbA, orbC)
+                    for (i in 0 until 5) {
+                        val ang = ms * 6.2831855f / (42000f + i * 9000f) + i * 2.1f
+                        val cx = w * (0.5f + 0.42f * kotlin.math.cos(ang))
+                        val cy = h * (0.5f + 0.32f * kotlin.math.sin(ang * 0.8f + i))
+                        val col = cols[i]
+                        orb(col.copy(alpha = (col.alpha * 1.5f).coerceAtMost(1f)), cx, cy, w * 0.85f * (1f + 0.3f * voice))
+                    }
+                }
+                "fireflies" -> {
+                    // Tiny lights that twinkle and wander, brighter with the voice.
+                    val cols = listOf(style.a, style.b, style.c)
+                    for (i in 0 until 26) {
+                        val fx = (i * 0.6180339f) % 1f
+                        val fy = (i * 0.3819660f + 0.13f) % 1f
+                        val x = w * fx + w * 0.04f * kotlin.math.sin(ms / 3100f + i)
+                        val y = h * fy + h * 0.03f * kotlin.math.cos(ms / 4300f + i * 1.3f)
+                        val tw = 0.5f + 0.5f * kotlin.math.sin(ms / (700f + (i % 5) * 160f) + i)
+                        val r = (2f + (i % 3)) * density * (1f + 0.8f * voice)
+                        val col = cols[i % 3]
+                        drawCircle(col.copy(alpha = 0.10f * tw), r * 4f, Offset(x, y))
+                        drawCircle(col.copy(alpha = (if (c.isDark) 0.85f else 0.65f) * tw), r, Offset(x, y))
+                    }
+                }
+                "horizon" -> {
+                    // A slow rising glow along the bottom edge, like first light.
+                    val breathe = 0.5f + 0.5f * kotlin.math.sin(ms / 4500f)
+                    orb(orbB.copy(alpha = (orbB.alpha * 2.4f).coerceAtMost(1f)), w * 0.5f, h * 1.02f, w * (1.1f + 0.25f * breathe + 0.5f * voice))
+                    orb(orbA.copy(alpha = (orbA.alpha * 1.8f).coerceAtMost(1f)), w * (0.5f + 0.2f * dA), h * 0.98f, w * (1.6f + 0.3f * voice))
+                    orb(orbC.copy(alpha = (orbC.alpha * 1.4f).coerceAtMost(1f)), w * (0.5f - 0.25f * dB), h * 1.0f, w * 0.8f)
+                }
+                "contour" -> {
+                    // Thin flowing lines, like contours on a map of water.
+                    val cols = listOf(orbA, orbC, orbB)
+                    for (j in 0 until 10) {
+                        val baseY = h * (0.12f + 0.085f * j)
+                        val path = Path()
+                        var x = 0f
+                        fun yAt(xx: Float): Float {
+                            val u = xx / w
+                            return baseY +
+                                h * 0.020f * (1f + 1.5f * voice) * kotlin.math.sin(u * 6.2831855f * 1.3f + t + j * 0.6f) +
+                                h * 0.012f * kotlin.math.sin(u * 6.2831855f * 2.7f - 2f * t + j)
+                        }
+                        path.moveTo(0f, yAt(0f))
+                        while (x < w) { x += 28f; path.lineTo(minOf(x, w), yAt(minOf(x, w))) }
+                        val col = cols[j % 3]
+                        drawPath(path, col.copy(alpha = (col.alpha * 2.6f).coerceAtMost(0.9f)), style = Stroke(1.4.dp.toPx()))
+                    }
+                }
+                "veil" -> {
+                    // Broad diagonal sheets of light sliding across the screen.
+                    val cols = listOf(orbA, orbB, orbC)
+                    val periods = longArrayOf(24000L, 31000L, 40000L)
+                    for (i in 0 until 3) {
+                        val prog = (ms % periods[i]).toFloat() / periods[i]
+                        val x0 = w * (-0.9f + 2.1f * prog)
+                        val col = cols[i]
+                        drawRect(
+                            Brush.linearGradient(
+                                listOf(Color.Transparent, col.copy(alpha = (col.alpha * 1.8f * (1f + voice)).coerceAtMost(1f)), Color.Transparent),
+                                start = Offset(x0, 0f), end = Offset(x0 + w * 0.8f, h * 0.55f),
+                            ),
+                        )
+                    }
+                }
                 "dunes" -> {
                     // Broad, slow hills layered like sand.
                     silk(h * (0.66f + 0.01f * dA), h * 0.060f, 0.55f, 1.2f, 0.5f, 1f, orbB.copy(alpha = orbB.alpha * 1.6f), edgeA)

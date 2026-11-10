@@ -37,6 +37,11 @@ val backgroundDesigns = listOf(
     "aurora" to "Aurora",
     "dunes" to "Dunes",
     "ripples" to "Ripples",
+    "mist" to "Mist",
+    "fireflies" to "Fireflies",
+    "horizon" to "Horizon",
+    "contour" to "Contour",
+    "veil" to "Veil",
 )
 
 val LocalBackgroundDesign = compositionLocalOf { "silk" }

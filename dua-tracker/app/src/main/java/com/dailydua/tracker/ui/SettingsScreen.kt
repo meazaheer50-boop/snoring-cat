@@ -110,11 +110,14 @@ fun SettingsScreen(ui: UiState, vm: DuaViewModel) {
                         Spacer(Modifier.height(18.dp))
                         Text("Design", style = DuaType.body.copy(fontWeight = FontWeight.SemiBold), color = c.ink)
                         Spacer(Modifier.height(10.dp))
-                        Segmented(
-                            options = backgroundDesigns.map { it.second },
-                            selected = backgroundDesigns.indexOfFirst { it.first == settings.design }.coerceAtLeast(0),
-                            onSelect = { vm.setDesign(backgroundDesigns[it].first) },
-                        )
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            backgroundDesigns.forEach { (id, label) ->
+                                Pill(text = label, filled = settings.design == id) { vm.setDesign(id) }
+                            }
+                        }
                         Spacer(Modifier.height(18.dp))
                         Text("Theme", style = DuaType.body.copy(fontWeight = FontWeight.SemiBold), color = c.ink)
                         Spacer(Modifier.height(10.dp))
