@@ -1,4 +1,4 @@
-# Daily Dua Tracker
+# Daily Dua
 
 Native Android app (Kotlin, Jetpack Compose). Look and feel follow the Daily Dua Tracker design system.
 
