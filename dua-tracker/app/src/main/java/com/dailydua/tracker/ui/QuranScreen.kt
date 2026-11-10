@@ -590,14 +590,13 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, ar
                 val text = buildAnnotatedString {
                     verses.forEach { (n, ar, _) ->
                         append(ar)
-                        append("\u00A0\u00A0")
-                        appendInlineContent("v$n", n)
+                        append("\u00A0")
+                        ayahEnd(n, gold)
                         append(" ")
                     }
                 }
                 Text(
                     text,
-                    inlineContent = markers,
                     style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Justify, lineHeight = (arabicSize * QURAN_LINE_HEIGHT).sp),
                     color = c.ink,
                     modifier = Modifier.fillMaxWidth(),
@@ -608,10 +607,9 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, ar
                 val (n, ar, en) = verses[i]
                 Column(Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
                     Text(
-                        inlineContent = markers,
                         text = buildAnnotatedString {
-                            append(ar); append("\u00A0\u00A0")
-                            appendInlineContent("v$n", n)
+                            append(ar); append("\u00A0")
+                            ayahEnd(n, gold)
                         },
                         style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Justify, lineHeight = (arabicSize * QURAN_LINE_HEIGHT).sp),
                         color = c.ink,
@@ -689,3 +687,15 @@ private fun MushafPage(surah: MushafSurah, page: Int, onZoomChange: (Boolean) ->
  * (ۚ ۖ ۗ) up to ~1.8 em above the baseline, so tighter lines push them into the line above.
  */
 private const val QURAN_LINE_HEIGHT = 2.5f
+
+/**
+ * Verse ending drawn by the Quran font itself: U+06DD END OF AYAH followed by the number in
+ * Arabic-Indic digits, which Amiri Quran shapes into the ornate Mushaf marker. Because it is
+ * part of the text it can never drift or overlap the last word, at any size or alignment.
+ */
+private fun androidx.compose.ui.text.AnnotatedString.Builder.ayahEnd(n: String, gold: Color) {
+    withStyle(androidx.compose.ui.text.SpanStyle(color = gold)) {
+        append("\u06DD")
+        append(arabicDigits(n))
+    }
+}
