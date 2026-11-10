@@ -42,6 +42,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
@@ -62,6 +63,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dailydua.tracker.data.Mushaf
@@ -166,7 +168,8 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
                         when (targetTab) {
                             0 -> TodayScreen(ui, onOpen = { openId = it.id }, onFavorite = vm::toggleFavorite)
                             1 -> QuranScreen(ui, onRead = { readingId = it.id }, onOpenDua = { openId = it })
-                            2 -> PlaylistScreen(ui, vm, onOpen = { openId = it.id })
+                            2 -> FavoritesScreen(ui, onOpen = { openId = it.id }, onFavorite = vm::toggleFavorite)
+                            3 -> PlaylistScreen(ui, vm, onOpen = { openId = it.id })
                             else -> SettingsScreen(ui, vm)
                         }
                         }
@@ -280,6 +283,7 @@ private fun BottomBar(selected: Int, visible: Boolean, onSelect: (Int) -> Unit) 
     val items = listOf(
         TabItem("Today", Icons.Rounded.Home),
         TabItem("Quran", AppIcons.Book),
+        TabItem("Favourites", Icons.Rounded.Favorite),
         TabItem("Playlist", AppIcons.Queue),
         TabItem("Settings", Icons.Rounded.Settings),
     )
@@ -300,7 +304,7 @@ private fun BottomBar(selected: Int, visible: Boolean, onSelect: (Int) -> Unit) 
         Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 24.dp, vertical = 12.dp)
+            .padding(horizontal = 12.dp, vertical = 12.dp)
             .graphicsLayer {
                 translationY = barOffsetY
                 alpha = barAlpha
@@ -347,7 +351,7 @@ private fun BottomBar(selected: Int, visible: Boolean, onSelect: (Int) -> Unit) 
                     label = "tabContentTint",
                 )
                 val tabWeight by animateFloatAsState(
-                    targetValue = if (on) 1.9f else 1f,
+                    targetValue = if (on) 2.3f else 1f,
                     animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
                     label = "tabWeight",
                 )
@@ -393,7 +397,7 @@ private fun BottomBar(selected: Int, visible: Boolean, onSelect: (Int) -> Unit) 
                     ) {
                         Row {
                             Spacer(Modifier.width(8.dp))
-                            Text(item.label.uppercase(), style = DuaType.label, color = contentTint, maxLines = 1)
+                            Text(item.label, style = DuaType.label.copy(letterSpacing = 0.sp, fontSize = 12.sp), color = contentTint, maxLines = 1)
                         }
                     }
                 }

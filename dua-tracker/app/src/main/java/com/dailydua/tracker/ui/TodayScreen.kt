@@ -72,8 +72,6 @@ fun TodayScreen(ui: UiState, onOpen: (Dua) -> Unit, onFavorite: (String) -> Unit
         item(key = "hero") {
             StaggeredEntrance(index = 1) { Hero(doneCount, daily.size) }
         }
-        val favs = all.filter { it.id in ui.favorites }
-        if (favs.isNotEmpty()) daySection("Favourites", favs, ui, onOpen, onFavorite)
         daySection("Through the day", daily, ui, onOpen, onFavorite)
         groups.forEach { (title, list) -> daySection(title, list, ui, onOpen, onFavorite) }
     }

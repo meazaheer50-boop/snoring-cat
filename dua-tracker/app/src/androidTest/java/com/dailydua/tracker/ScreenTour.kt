@@ -168,8 +168,8 @@ class ScreenTour {
             rule.onNodeWithText("Read the names").performClick()
             shot("13b_names_reader", 1500)
             back()
-            tab("Today")
-            shot("13c_today_favourites", 1500)
+            tab("Favourites")
+            shot("13c_favourites_tab", 1500)
             tab("Quran")
         }
         step("playlist") {
