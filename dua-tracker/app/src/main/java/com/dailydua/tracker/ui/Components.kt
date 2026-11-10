@@ -389,6 +389,25 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                         }
                     }
                 }
+                "ripples" -> {
+                    // Soft rings of light spreading from the bottom of the screen.
+                    val cols = listOf(orbA, orbC, orbB)
+                    for (i in 0 until 5) {
+                        val prog = ((i / 5f) + (ms % 18000L) / 18000f) % 1f
+                        val r = h * (0.12f + 0.85f * prog)
+                        val col = cols[i % 3]
+                        val fade = (1f - prog) * kotlin.math.min(1f, prog * 6f)
+                        val center = Offset(w * (0.5f + 0.1f * dA), h * 1.02f)
+                        drawCircle(
+                            col.copy(alpha = (col.alpha * 2.2f * fade * (1f + 1.2f * voice)).coerceIn(0f, 1f)),
+                            radius = r, center = center,
+                            style = Stroke(w * (0.05f + 0.05f * prog) * (1f + voice)),
+                        )
+                        drawCircle(
+                            edgeA.copy(alpha = edgeA.alpha * fade), radius = r, center = center, style = Stroke(1.2.dp.toPx()),
+                        )
+                    }
+                }
                 "dunes" -> {
                     // Broad, slow hills layered like sand.
                     silk(h * (0.66f + 0.01f * dA), h * 0.060f, 0.55f, 1.2f, 0.5f, 1f, orbB.copy(alpha = orbB.alpha * 1.6f), edgeA)

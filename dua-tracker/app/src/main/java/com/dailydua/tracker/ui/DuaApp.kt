@@ -78,7 +78,8 @@ import com.dailydua.tracker.ui.theme.Tokens
 @Composable
 fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunchHandled: () -> Unit = {}) {
     val ui by vm.state.collectAsStateWithLifecycle()
-    DuaTheme(ui.settings.theme) {
+    val bgStyle = BackgroundStyle.byId(ui.settings.background)
+    DuaTheme(ui.settings.theme, bgStyle.accentDark, bgStyle.accentLight) {
       androidx.compose.runtime.CompositionLocalProvider(
           LocalBackgroundStyle provides BackgroundStyle.byId(ui.settings.background),
           LocalBackgroundDesign provides ui.settings.design,
