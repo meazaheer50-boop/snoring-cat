@@ -315,7 +315,8 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(bgTop, bgMid, bgBot))),
     ) {
-        Canvas(Modifier.fillMaxSize()) {
+        // Own layer: the moving background redraws without re-drawing the screens on top, and vice versa.
+        Canvas(Modifier.fillMaxSize().graphicsLayer()) {
             val w = size.width
             val h = size.height
             val voice = if (reduceMotion) 0f else AudioLevel.level * playGain
@@ -583,7 +584,7 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                 }
             }
         }
-        content()
+        Box(Modifier.fillMaxSize().graphicsLayer()) { content() }
     }
 }
 

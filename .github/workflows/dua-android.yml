@@ -47,20 +47,20 @@ jobs:
         working-directory: dua-tracker
         run: pip install --quiet fonttools && python3 tools/quran_text.py check
 
-      - name: Build debug APK
+      - name: Build release APK
         working-directory: dua-tracker
-        run: gradle assembleDebug --no-daemon
+        run: gradle assembleRelease --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:
           name: dua-tracker-apk
-          path: dua-tracker/app/build/outputs/apk/debug/app-debug.apk
+          path: dua-tracker/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
       - name: Publish APK as a pre-release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp dua-tracker/app/build/outputs/apk/debug/app-debug.apk DailyDua.apk
+          cp dua-tracker/app/build/outputs/apk/release/app-release.apk DailyDua.apk
           gh release delete dua-tracker-latest --cleanup-tag --yes || true
-          gh release create dua-tracker-latest DailyDua.apk --prerelease --target "${{ github.sha }}" --title "Daily Dua (debug build)" --notes "Debug build for Android featuring the Glassmorphism UI, navigation transitions & animations, and bundled audio recordings for Dua Qunoot and Dua Khatm al-Quran."
+          gh release create dua-tracker-latest DailyDua.apk --prerelease --target "${{ github.sha }}" --title "Daily Dua" --notes "Optimised release build for Android featuring the Glassmorphism UI, navigation transitions & animations, and bundled audio recordings for Dua Qunoot and Dua Khatm al-Quran."

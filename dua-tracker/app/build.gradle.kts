@@ -37,8 +37,12 @@ android {
             signingConfigs.findByName("dua")?.let { signingConfig = it }
         }
         release {
-            isMinifyEnabled = false
-            signingConfigs.findByName("dua")?.let { signingConfig = it }
+            // Optimised build: R8 shrinks and compiles the code ahead, which makes Compose far smoother
+            // than the debug build (debug builds run Compose without optimisations).
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.findByName("dua") ?: signingConfigs.getByName("debug")
         }
     }
     compileOptions {
@@ -63,6 +67,8 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.4.1")
     implementation("androidx.media3:media3-session:1.4.1")
     implementation("com.google.guava:guava:33.3.1-android")
+    // Applies the libraries' ahead-of-time profiles when the APK is installed outside the Play Store.
+    implementation("androidx.profileinstaller:profileinstaller:1.3.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
