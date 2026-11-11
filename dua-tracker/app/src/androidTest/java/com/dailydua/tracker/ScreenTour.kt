@@ -99,6 +99,10 @@ class ScreenTour {
 
     @Test
     fun tour() {
+        // A fresh install asks whether to restore a backup; a new user starts fresh.
+        rule.waitUntil(8000) { rule.onAllNodesWithText("Start fresh").fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithText("Start fresh").performClick()
+        rule.waitForIdle()
         step("today") {
             shot("01_today_light", 1500)
             scrollTo("Dua al-Qunoot")
