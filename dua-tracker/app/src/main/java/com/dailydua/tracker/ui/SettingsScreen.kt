@@ -278,27 +278,12 @@ fun SettingsScreen(ui: UiState, vm: DuaViewModel) {
                 }
             }
         }
-        Group("Backup") {
-            val saveLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-                androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json"),
-            ) { uri ->
-                if (uri != null) vm.saveBackup(
-                    write = { text -> context.contentResolver.openOutputStream(uri)!!.use { it.write(text.toByteArray()) } },
-                    done = { ok -> android.widget.Toast.makeText(context, if (ok) "Backup saved" else "Could not save the backup", android.widget.Toast.LENGTH_SHORT).show() },
-                )
-            }
-            val openLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-                androidx.activity.result.contract.ActivityResultContracts.OpenDocument(),
-            ) { uri ->
-                if (uri != null) vm.restoreBackup(
-                    read = { context.contentResolver.openInputStream(uri)!!.use { it.readBytes().decodeToString() } },
-                    done = { ok -> android.widget.Toast.makeText(context, if (ok) "Backup restored" else "That file is not a Daily Dua backup", android.widget.Toast.LENGTH_SHORT).show() },
-                )
-            }
-            ActionRow("Save a backup", "Reminders, favourites, playlist and settings in one file") { saveLauncher.launch("daily-dua-backup.json") }
-            HorizontalDivider(color = c.hairline)
-            ActionRow("Restore a backup", "Replaces what is on this phone with a saved file") { openLauncher.launch(arrayOf("application/json", "application/octet-stream", "text/plain")) }
-        }
+        Text(
+            "Your reminders, favourites, playlist and settings are saved automatically and come back if you reinstall the app.",
+            style = DuaType.caption,
+            color = c.inkMuted,
+            modifier = Modifier.padding(top = 24.dp, start = 4.dp),
+        )
         Text(
             "Quran text from Tanzil.net (Uthmani). English translation: Saheeh International. The other duas were typed by hand and the recited duas were written down by ear, so check any wording you rely on against a trusted source.",
             style = DuaType.caption,
@@ -524,22 +509,5 @@ private fun BackgroundPicker(selected: String, onSelect: (String) -> Unit) {
                 )
             }
         }
-    }
-}
-
-
-@Composable
-private fun ActionRow(title: String, caption: String, onClick: () -> Unit) {
-    val c = Tokens.colors
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 66.dp)
-            .bounceClick(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(title, style = DuaType.body.copy(fontWeight = FontWeight.SemiBold), color = c.brand)
-        Text(caption, style = DuaType.caption, color = c.inkMuted)
     }
 }

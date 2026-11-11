@@ -38,6 +38,7 @@ class DuaRepository(private val context: Context) {
     private val keepOn = booleanPreferencesKey("keep_screen_on")
     private val backgroundKey = stringPreferencesKey("background")
     private val designKey = stringPreferencesKey("background_design")
+    private val startedKey = booleanPreferencesKey("backup_started")
     /** Entries look like "2026-11-03|waking". */
     private val done = stringSetPreferencesKey("done")
     private val remindersKey = stringSetPreferencesKey("reminders")
@@ -132,6 +133,11 @@ class DuaRepository(private val context: Context) {
 
     suspend fun setPlaylist(ids: List<String>) { context.store.edit { it[playlistKey] = ids.joinToString(",") } }
 
+    /** True until the app has run once on this install (a restored cloud backup counts as already started). */
+    suspend fun isFreshInstall(): Boolean = context.store.data.first().let { it[startedKey] != true && it.asMap().isEmpty() }
+    suspend fun markStarted() { context.store.edit { it[startedKey] = true } }
+    fun changes(): Flow<Any> = context.store.data
+
     /** Everything the user has set up (reminders, favourites, playlist, progress, settings) as one JSON text. */
     suspend fun exportBackup(): String {
         val root = org.json.JSONObject()
@@ -139,6 +145,7 @@ class DuaRepository(private val context: Context) {
         root.put("version", 1)
         val items = org.json.JSONObject()
         context.store.data.first().asMap().forEach { (k, v) ->
+            if (k.name == "backup_started") return@forEach
             val o = org.json.JSONObject()
             when (v) {
                 is Boolean -> o.put("t", "b").put("v", v)

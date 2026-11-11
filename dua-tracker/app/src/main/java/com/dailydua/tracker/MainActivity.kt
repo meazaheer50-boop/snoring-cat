@@ -27,6 +27,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         PlayerHub.init(this)
         requestHighRefreshRate()
+        com.dailydua.tracker.data.AutoBackup.start(this, androidx.lifecycle.lifecycleScope)
         launchDuaId = intent?.getStringExtra(EXTRA_DUA_ID)
         setContent {
             CompositionLocalProvider(LocalAskNotifications provides ::askNotificationsOnce) {
