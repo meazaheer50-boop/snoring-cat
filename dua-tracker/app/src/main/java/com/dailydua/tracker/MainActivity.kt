@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.dailydua.tracker.playback.PlayerHub
 import com.dailydua.tracker.ui.DuaApp
 import com.dailydua.tracker.ui.LocalAskNotifications
@@ -27,7 +28,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         PlayerHub.init(this)
         requestHighRefreshRate()
-        com.dailydua.tracker.data.AutoBackup.start(this, androidx.lifecycle.lifecycleScope)
+        com.dailydua.tracker.data.AutoBackup.start(this, lifecycleScope)
         launchDuaId = intent?.getStringExtra(EXTRA_DUA_ID)
         setContent {
             CompositionLocalProvider(LocalAskNotifications provides ::askNotificationsOnce) {
