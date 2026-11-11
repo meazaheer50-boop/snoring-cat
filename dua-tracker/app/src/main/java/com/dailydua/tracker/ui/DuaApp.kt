@@ -2,6 +2,7 @@ package com.dailydua.tracker.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -257,6 +258,45 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
                         onClose = { readingId = null },
                     )
                 }
+            }
+
+            if (com.dailydua.tracker.data.AutoBackup.needsRestore) {
+                val scope = androidx.compose.runtime.rememberCoroutineScope()
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val picker = androidx.activity.compose.rememberLauncherForActivityResult(
+                    androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+                ) { result ->
+                    val uri = result.data?.data
+                    if (uri != null) scope.launch {
+                        val ok = com.dailydua.tracker.data.AutoBackup.restoreFrom(uri)
+                        android.widget.Toast.makeText(
+                            context,
+                            if (ok) "Your setup is back" else "That file is not a Daily Dua backup",
+                            android.widget.Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                }
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = {},
+                    containerColor = Tokens.colors.surface200,
+                    title = { Text("Restore your setup?", style = DuaType.title, color = Tokens.colors.ink) },
+                    text = {
+                        Text(
+                            "If you used Daily Dua before, tap Restore and choose daily-dua-backup.json in the Documents/DailyDua folder. Your reminders, favourites, playlist and settings come back.",
+                            style = DuaType.body, color = Tokens.colors.inkMuted,
+                        )
+                    },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(onClick = { picker.launch(com.dailydua.tracker.data.AutoBackup.pickerIntent()) }) {
+                            Text("Restore", color = Tokens.colors.brand)
+                        }
+                    },
+                    dismissButton = {
+                        androidx.compose.material3.TextButton(onClick = { com.dailydua.tracker.data.AutoBackup.startFresh() }) {
+                            Text("Start fresh", color = Tokens.colors.inkMuted)
+                        }
+                    },
+                )
             }
 
             reminderFor?.let { d ->

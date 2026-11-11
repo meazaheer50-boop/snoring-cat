@@ -3,59 +3,129 @@ package com.dailydua.tracker.data
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
-import android.util.Log
 import android.provider.MediaStore
+import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
- * Keeps the user's setup (reminders, favourites, playlist, progress, settings) saved without any manual step.
+ * Keeps the user's setup (reminders, favourites, playlist, progress, every setting) saved without a manual step.
  *
- *  1. Android's own cloud backup (allowBackup) restores it when the app is installed again.
- *  2. A copy is also written to Documents/DailyDua on the phone after every change, and read back
- *     the first time the app opens with nothing set up, so a reinstall picks up where it left off.
+ * Android 11+ gives a reinstalled app a new identity, so it can no longer open the file its
+ * previous install wrote. After a reinstall the app therefore asks once, with one tap, to
+ * pick that file; from then on it keeps writing to the very same file.
+ *
+ *  - First install: the copy is written to Documents/DailyDua after every change.
+ *  - Reinstall: [needsRestore] turns true; [restoreFrom] reads the chosen file and keeps
+ *    writing to it (it holds a permission to that file).
  */
 object AutoBackup {
     private const val TAG = "AutoBackup"
     private const val NAME = "daily-dua-backup.json"
     private const val FOLDER = "Documents/DailyDua/"
+    private const val PREFS = "backup_target"
 
-    /** Call once from the main screen. Restores on a fresh install, then keeps saving. */
+    /** True on a reinstall, until the user restores or starts fresh. The app shows a prompt while it is true. */
+    var needsRestore by mutableStateOf(false)
+        private set
+
+    private val resolved = CompletableDeferred<Unit>()
+    private lateinit var app: Context
+    private lateinit var repo: DuaRepository
+
     @OptIn(FlowPreview::class)
     fun start(context: Context, scope: CoroutineScope) {
-        val app = context.applicationContext
-        val repo = DuaRepository(app)
+        app = context.applicationContext
+        repo = DuaRepository(app)
         scope.launch(Dispatchers.IO) {
             runCatching {
                 val fresh = repo.isFreshInstall()
                 Log.w(TAG, "start: fresh=$fresh")
-                if (!fresh) return@runCatching
-                val text = read(app)
-                Log.w(TAG, "start: backup file found=${text != null} size=${text?.length}")
-                if (text != null) Log.w(TAG, "start: restored=${repo.importBackup(text)}")
+                if (fresh) {
+                    val own = readOwn()
+                    if (own != null) {
+                        Log.w(TAG, "start: restored from own file=${repo.importBackup(own)}")
+                    } else {
+                        needsRestore = true
+                        Log.w(TAG, "start: waiting for the user to choose the backup file")
+                        resolved.await()
+                    }
+                }
             }.onFailure { Log.w(TAG, "start failed", it) }
             repo.markStarted()
-            // Save the current state now, then again after every change (batched).
-            runCatching { write(app, repo.exportBackup()); Log.w(TAG, "saved") }.onFailure { Log.w(TAG, "save failed", it) }
-            repo.changes().drop(1).debounce(2000).collect {
-                runCatching { write(app, repo.exportBackup()); Log.w(TAG, "saved") }.onFailure { Log.w(TAG, "save failed", it) }
-            }
+            save()
+            repo.changes().drop(1).debounce(2000).collect { save() }
         }
     }
 
-    private fun write(context: Context, text: String) {
+    /** The intent that opens the system file picker at the backup folder, with permission to read and keep writing the file. */
+    fun pickerIntent(): Intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+        addCategory(Intent.CATEGORY_OPENABLE)
+        type = "*/*"
+        putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/json", "application/octet-stream", "text/plain"))
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        runCatching {
+            putExtra(
+                "android.provider.extra.INITIAL_URI",
+                Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADocuments%2FDailyDua"),
+            )
+        }
+    }
+
+    /** Restores from the file the user picked. Returns false if it is not a Daily Dua backup. */
+    suspend fun restoreFrom(uri: Uri): Boolean {
+        val resolver = app.contentResolver
+        runCatching {
+            resolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        }.onFailure { Log.w(TAG, "no write grant", it) }
+        val text = runCatching { resolver.openInputStream(uri)?.use { it.readBytes().decodeToString() } }.getOrNull() ?: return false
+        if (!repo.importBackup(text)) return false
+        app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("uri", uri.toString()).apply()
+        finish()
+        return true
+    }
+
+    /** The user chose to begin again without restoring. */
+    fun startFresh() = finish()
+
+    private fun finish() {
+        needsRestore = false
+        resolved.complete(Unit)
+    }
+
+    private suspend fun save() {
+        runCatching {
+            val text = repo.exportBackup()
+            val saved = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("uri", null)
+            if (saved != null) {
+                val ok = runCatching { writeTo(Uri.parse(saved), text) }.isSuccess
+                if (ok) { Log.w(TAG, "saved to chosen file"); return }
+            }
+            writeOwn(text)
+            Log.w(TAG, "saved")
+        }.onFailure { Log.w(TAG, "save failed", it) }
+    }
+
+    private fun writeTo(uri: Uri, text: String) {
+        app.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(text.toByteArray()) }
+    }
+
+    private fun writeOwn(text: String) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
-        val resolver = context.contentResolver
+        val resolver = app.contentResolver
         val collection = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-        val existing = find(context)
-        val uri = existing ?: resolver.insert(
+        val uri = findOwn() ?: resolver.insert(
             collection,
             ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, NAME)
@@ -63,23 +133,23 @@ object AutoBackup {
                 put(MediaStore.MediaColumns.RELATIVE_PATH, FOLDER)
             },
         ) ?: return
-        resolver.openOutputStream(uri, "wt")?.use { it.write(text.toByteArray()) }
+        writeTo(uri, text)
     }
 
-    private fun read(context: Context): String? {
+    private fun readOwn(): String? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
-        val uri = find(context) ?: return null
-        return context.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() }
+        val uri = findOwn() ?: return null
+        return app.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() }
     }
 
-    private fun find(context: Context): android.net.Uri? {
+    private fun findOwn(): Uri? {
         val collection = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-        context.contentResolver.query(
+        app.contentResolver.query(
             collection,
             arrayOf(MediaStore.MediaColumns._ID),
-            "${MediaStore.MediaColumns.DISPLAY_NAME}=? AND ${MediaStore.MediaColumns.RELATIVE_PATH}=?",
-            arrayOf(NAME, FOLDER),
-            null,
+            "${MediaStore.MediaColumns.DISPLAY_NAME} LIKE ? AND ${MediaStore.MediaColumns.RELATIVE_PATH}=?",
+            arrayOf("daily-dua-backup%", FOLDER),
+            "${MediaStore.MediaColumns.DATE_MODIFIED} DESC",
         )?.use { c -> if (c.moveToFirst()) return ContentUris.withAppendedId(collection, c.getLong(0)) }
         return null
     }
