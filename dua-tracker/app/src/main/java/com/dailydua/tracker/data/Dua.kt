@@ -39,9 +39,9 @@ object SampleDuas {
         ),
         Dua(
             id = "leaving", title = "Leaving the house", tag = "Bismillah, tawakkaltu ʿala-llah", time = TimeOfDay.MORNING,
-            arabic = "بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ",
-            transliteration = "Bismillah, tawakkaltu ’alallah",
-            translation = "In the name of Allah, I place my trust in Allah.",
+            arabic = "بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ، لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
+            transliteration = "Bismillah, tawakkaltu ’alallah, la hawla wa la quwwata illa billah",
+            translation = "In the name of Allah, I place my trust in Allah. There is no might and no power except with Allah.",
         ),
         Dua(
             id = "before-eating", title = "Before eating", tag = "Bismillah", time = TimeOfDay.MORNING,
@@ -65,7 +65,7 @@ object SampleDuas {
             id = "qunoot", title = "Dua al-Qunoot", tag = "Mishary Al-Afasy · 11 min", time = TimeOfDay.ANYTIME,
             lines = QunootData.lines,
             audioAsset = "qunoot.mp3",
-            source = "Text transcribed from a video of the dua. Not yet verified.",
+            source = "The text follows this recitation and was typed by ear, so small spelling differences are possible.",
             category = "Listen and follow along",
         ),
         Dua(
@@ -73,7 +73,7 @@ object SampleDuas {
             lines = KhatmData.lines,
             audioAsset = "khatm.mp3",
             category = "Listen and follow along",
-            source = "Text from YouTube's automatic captions, without vowel marks; the English is an unverified draft translation. Not yet verified.",
+            source = "The Arabic follows this recitation and is shown without vowel marks. The English is a working translation, not a scholarly one.",
         ),
         Dua(
             id = "waqiah", title = "Surah Al-Waqi\u2019ah", tag = "Mishary Al-Afasy · 14 min · 96 verses", time = TimeOfDay.ANYTIME,
@@ -94,13 +94,13 @@ object SampleDuas {
             lines = NamesData.lines,
             audioAsset = "names99.m4a",
             category = "Listen and follow along",
-            source = "Names and meanings follow the common list; some lists differ slightly in order and wording. Timing comes from the recording's captions, adjusted to its pauses; the opening line is transcribed from the captions.",
+            source = "Names and meanings follow the common list; some lists differ slightly in order and wording. Each name lights up as it is recited.",
         ),
         Dua(
             id = "janazah", title = "Janazah prayer guide", tag = "4 takbirs · what to recite", time = TimeOfDay.ANYTIME,
             lines = JanazahData.lines,
             category = "Janazah prayer",
-            source = "The 3rd takbir duas follow the page you sent. Al-Fatiha from Tanzil. The other texts are written from memory (Bukhari 3370, Muslim 963). Scholars differ on some details; follow your local imam.",
+            source = "Al-Fatiha is from the Uthmani text. The salawat and the duas after the third takbir follow well-known narrations (Bukhari 3370, Muslim 963). Scholars differ on some details, so follow your local imam.",
         ),
     ) + MoreDuas.all
 }

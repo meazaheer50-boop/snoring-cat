@@ -611,7 +611,7 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, ar
                             append(ar); append("\u00A0")
                             ayahEnd(n, gold)
                         },
-                        style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Justify, lineHeight = (arabicSize * QURAN_LINE_HEIGHT).sp),
+                        style = DuaType.arabic(arabicSize).copy(textAlign = TextAlign.Start, lineHeight = (arabicSize * QURAN_LINE_HEIGHT).sp),
                         color = c.ink,
                         modifier = Modifier.fillMaxWidth(),
                     )

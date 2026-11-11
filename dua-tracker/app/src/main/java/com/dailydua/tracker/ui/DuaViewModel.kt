@@ -80,6 +80,14 @@ class DuaViewModel(app: Application) : AndroidViewModel(app) {
     fun setShowTransliteration(on: Boolean) = viewModelScope.launch { repo.setShowTransliteration(on) }
     fun setShowTranslation(on: Boolean) = viewModelScope.launch { repo.setShowTranslation(on) }
     fun setKeepScreenOn(on: Boolean) = viewModelScope.launch { repo.setKeepScreenOn(on) }
+    fun saveBackup(write: (String) -> Unit, done: (Boolean) -> Unit) = viewModelScope.launch {
+        val ok = runCatching { val text = repo.exportBackup(); kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { write(text) } }.isSuccess
+        done(ok)
+    }
+    fun restoreBackup(read: () -> String, done: (Boolean) -> Unit) = viewModelScope.launch {
+        val ok = runCatching { repo.importBackup(kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { read() }) }.getOrDefault(false)
+        done(ok)
+    }
     fun setDesign(id: String) = viewModelScope.launch { repo.setDesign(id) }
     fun setBackground(id: String) = viewModelScope.launch { repo.setBackground(id) }
 

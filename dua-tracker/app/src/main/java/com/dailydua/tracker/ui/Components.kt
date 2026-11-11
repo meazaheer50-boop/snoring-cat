@@ -98,6 +98,10 @@ import com.dailydua.tracker.ui.theme.QuranFont
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.graphics.PathOperation
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
 import com.dailydua.tracker.ui.theme.Tokens
 import kotlinx.coroutines.delay
 
@@ -283,10 +287,11 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
     LaunchedEffect(reduceMotion) {
         if (reduceMotion) return@LaunchedEffect
         lifecycleOwner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
-            var last = 0L
+            // Counted from when the screen opened, so the numbers stay small and the motion stays smooth.
+            val start = withFrameNanos { it } - clock * 1_000_000L
             while (true) {
                 val n = withFrameNanos { it }
-                last = n; clock = n / 1_000_000L
+                clock = (n - start) / 1_000_000L
             }
         }
     }
@@ -300,7 +305,7 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
 
     val style = LocalBackgroundStyle.current
     val design = LocalBackgroundDesign.current
-    val textMeasurer = rememberTextMeasurer()
+    val textMeasurer = rememberTextMeasurer(cacheSize = 32)
     val custom = style.id != "emerald"
     val base = if (c.isDark) style.darkBase else style.lightBase
     val orbA = if (custom) style.a.copy(alpha = if (c.isDark) 0.28f else 0.22f) else c.orbPrimary
@@ -571,6 +576,228 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                     silk(h * (0.74f + 0.01f * dA), h * 0.05f, 0.5f, 1.1f, 0.4f, 1f, orbB.copy(alpha = (orbB.alpha * 1.8f).coerceAtMost(1f)), edgeA)
                     silk(h * (0.84f + 0.01f * dB), h * 0.045f, 0.65f, 1.4f, 2.6f, -1f, orbA.copy(alpha = (orbA.alpha * 1.8f).coerceAtMost(1f)), edgeA)
                 }
+                "tasbih" -> {
+                    // A string of prayer beads hanging in a slow sway; one bead after another lights up.
+                    val n = 33
+                    val sway = w * 0.03f * kotlin.math.sin(ms / 2600f)
+                    val warm = style.b
+                    fun bead(u: Float) = Offset(
+                        w * (0.08f + 0.84f * u) + sway * kotlin.math.sin(3.1415927f * u),
+                        h * (0.02f + 0.42f * 4f * u * (1f - u)),
+                    )
+                    val cord = Path()
+                    for (k in 0..40) { val p = bead(k / 40f); if (k == 0) cord.moveTo(p.x, p.y) else cord.lineTo(p.x, p.y) }
+                    drawPath(cord, warm.copy(alpha = 0.35f), style = Stroke(1.dp.toPx()))
+                    val active = ((ms / 650L) % n).toInt()
+                    for (k in 0 until n) {
+                        val p = bead((k + 0.5f) / n)
+                        val on = k == active
+                        val r = w * 0.014f * (if (on) 1.5f + voice else 1f)
+                        if (on) orb(warm.copy(alpha = 0.55f), p.x, p.y, r * 6f)
+                        drawCircle(warm.copy(alpha = if (on) 1f else if (c.isDark) 0.55f else 0.65f), r, p)
+                        drawCircle(Color.White.copy(alpha = if (on) 0.9f else 0.25f), r * 0.35f, Offset(p.x - r * 0.3f, p.y - r * 0.3f))
+                    }
+                    val mid = bead(0.5f)
+                    drawLine(warm.copy(alpha = 0.6f), mid, Offset(mid.x, mid.y + h * 0.07f), strokeWidth = 1.5.dp.toPx())
+                    drawCircle(warm.copy(alpha = 0.8f), w * 0.02f, Offset(mid.x, mid.y + h * 0.08f))
+                }
+                "minarets" -> {
+                    // A skyline of domes and minarets against the evening glow.
+                    orb(orbB.copy(alpha = (orbB.alpha * (2.2f + voice)).coerceAtMost(1f)), w * 0.5f, h * 0.86f, w * (1.0f + 0.3f * voice))
+                    fun skyline(baseY: Float, scale: Float, shift: Float, col: Color) {
+                        val p = Path()
+                        p.addRect(Rect(0f, baseY, w, h))
+                        fun dome(cx: Float, r: Float) {
+                            p.addOval(Rect(Offset(cx, baseY), r))
+                            p.moveTo(cx - r * 0.08f, baseY - r); p.lineTo(cx, baseY - r * 1.35f); p.lineTo(cx + r * 0.08f, baseY - r); p.close()
+                        }
+                        fun minaret(cx: Float, height: Float) {
+                            val mw = w * 0.022f * scale
+                            p.addRect(Rect(cx - mw / 2f, baseY - height, cx + mw / 2f, baseY))
+                            p.addRect(Rect(cx - mw, baseY - height * 0.72f, cx + mw, baseY - height * 0.69f))
+                            p.addOval(Rect(Offset(cx, baseY - height), mw * 0.75f))
+                            p.moveTo(cx - mw * 0.5f, baseY - height); p.lineTo(cx, baseY - height - mw * 3f); p.lineTo(cx + mw * 0.5f, baseY - height); p.close()
+                        }
+                        dome(w * (0.50f + shift), w * 0.17f * scale)
+                        dome(w * (0.30f + shift), w * 0.08f * scale)
+                        dome(w * (0.70f + shift), w * 0.08f * scale)
+                        minaret(w * (0.14f + shift), h * 0.30f * scale)
+                        minaret(w * (0.86f + shift), h * 0.30f * scale)
+                        minaret(w * (0.36f + shift), h * 0.17f * scale)
+                        minaret(w * (0.64f + shift), h * 0.17f * scale)
+                        drawPath(p, col)
+                    }
+                    val shade = if (c.isDark) Color.Black else style.a
+                    skyline(h * 0.82f, 0.7f, 0.03f * dA + 0.08f, shade.copy(alpha = if (c.isDark) 0.28f else 0.14f))
+                    skyline(h * 0.88f, 1f, 0.01f * dB, shade.copy(alpha = if (c.isDark) 0.55f else 0.26f))
+                }
+                "fajr" -> {
+                    // First light: thin bands of colour spreading along the horizon.
+                    val rise = 0.5f + 0.5f * kotlin.math.sin(ms / 9000f)
+                    orb(orbB.copy(alpha = (orbB.alpha * (2f + voice)).coerceAtMost(1f)), w * 0.5f, h * (0.80f - 0.04f * rise), w * (0.9f + 0.3f * voice))
+                    val cols = listOf(orbB, orbA, orbC)
+                    for (k in 0 until 9) {
+                        val y = h * (0.42f + 0.05f * k) + h * 0.004f * kotlin.math.sin(ms / 3000f + k)
+                        val col = cols[k % 3]
+                        val mid = w * (0.5f + 0.25f * kotlin.math.sin(ms / 7000f + k * 1.1f))
+                        drawRect(
+                            Brush.horizontalGradient(
+                                listOf(Color.Transparent, col.copy(alpha = (col.alpha * (1.6f + 0.2f * k) * (1f + voice)).coerceAtMost(1f)), Color.Transparent),
+                                startX = mid - w * 0.7f, endX = mid + w * 0.7f,
+                            ),
+                            topLeft = Offset(0f, y), size = Size(w, h * 0.004f * (1f + k * 0.35f)),
+                        )
+                    }
+                }
+                "kiswah" -> {
+                    // A band of gold script moving slowly across, like the belt of the Kaaba's cloth.
+                    val gold = c.gold
+                    val top = h * 0.30f
+                    val bh = h * 0.10f
+                    orb(gold.copy(alpha = 0.10f + 0.10f * voice), w * 0.5f, top + bh / 2f, w * 0.9f)
+                    drawRect(Brush.verticalGradient(listOf(gold.copy(alpha = 0.06f), gold.copy(alpha = 0.18f), gold.copy(alpha = 0.06f)), startY = top, endY = top + bh), topLeft = Offset(0f, top), size = Size(w, bh))
+                    for (yy in listOf(top, top + bh)) {
+                        drawLine(gold.copy(alpha = 0.75f), Offset(0f, yy), Offset(w, yy), strokeWidth = 1.2.dp.toPx())
+                        drawLine(gold.copy(alpha = 0.30f), Offset(0f, yy + (if (yy == top) -5 else 5).dp.toPx()), Offset(w, yy + (if (yy == top) -5 else 5).dp.toPx()), strokeWidth = 1.dp.toPx())
+                    }
+                    val layout = textMeasurer.measure(
+                        "لَا إِلَٰهَ إِلَّا ٱللَّهُ مُحَمَّدٌ رَسُولُ ٱللَّهِ",
+                        androidx.compose.ui.text.TextStyle(fontFamily = QuranFont, fontSize = (bh * 0.42f).toSp()),
+                    )
+                    val step = layout.size.width + w * 0.18f
+                    val off = (ms % 60000L) / 60000f * step
+                    clipRect(0f, top, w, top + bh) {
+                        var x = -step + off
+                        while (x < w) {
+                            drawText(layout, color = gold, topLeft = Offset(x, top + (bh - layout.size.height) / 2f), alpha = (0.75f + 0.25f * voice).coerceAtMost(1f))
+                            x += step
+                        }
+                    }
+                }
+                "dome" -> {
+                    // Looking up into a dome: rings of petals turning slowly around the light at its crown.
+                    val centre = Offset(w * 0.5f, h * 0.30f)
+                    orb(orbB.copy(alpha = (orbB.alpha * (2f + voice)).coerceAtMost(1f)), centre.x, centre.y, w * (0.5f + 0.2f * voice))
+                    val cols = listOf(style.b, style.a, style.c, style.a)
+                    for (ring in 0 until 4) {
+                        val count = 10 + ring * 6
+                        val rad = w * (0.13f + 0.13f * ring)
+                        val len = w * 0.12f
+                        val wid = (2f * 3.1415927f * rad / count) * 0.42f
+                        val turn = (ms % 240000L) / 240000f * 360f * (if (ring % 2 == 0) 1 else -1)
+                        val petal = Path().apply {
+                            moveTo(centre.x, centre.y - rad)
+                            quadraticTo(centre.x + wid, centre.y - rad - len * 0.5f, centre.x, centre.y - rad - len)
+                            quadraticTo(centre.x - wid, centre.y - rad - len * 0.5f, centre.x, centre.y - rad)
+                        }
+                        val col = cols[ring].copy(alpha = (if (c.isDark) 0.38f else 0.42f) * (1f - 0.15f * ring) * (1f + 0.5f * voice))
+                        for (k in 0 until count) {
+                            rotate(turn + k * 360f / count, centre) {
+                                drawPath(petal, col.copy(alpha = col.alpha * 0.18f))
+                                drawPath(petal, col, style = Stroke(1.dp.toPx()))
+                            }
+                        }
+                    }
+                }
+                "palms" -> {
+                    // Date palms leaning over dunes in the last light.
+                    orb(orbB.copy(alpha = (orbB.alpha * (2f + voice)).coerceAtMost(1f)), w * 0.55f, h * 0.80f, w * (0.9f + 0.3f * voice))
+                    val shade = (if (c.isDark) Color.Black else style.a).copy(alpha = if (c.isDark) 0.55f else 0.30f)
+                    fun palm(x: Float, topY: Float, lean: Float, sc: Float, phase: Float) {
+                        val sw = kotlin.math.sin(ms / 2400f + phase)
+                        val tx = x + lean + w * 0.01f * sw
+                        val trunk = Path().apply { moveTo(x, h); quadraticTo(x + lean * 0.2f, (h + topY) / 2f, tx, topY) }
+                        drawPath(trunk, shade, style = Stroke(w * 0.022f * sc, cap = StrokeCap.Round))
+                        for (k in 0 until 8) {
+                            val ang = (-200f + k * 31f + 4f * sw) * 3.1415927f / 180f
+                            val len = w * 0.20f * sc
+                            val ex = tx + len * kotlin.math.cos(ang)
+                            val ey = topY + len * kotlin.math.sin(ang) * 0.6f + len * 0.45f
+                            val frond = Path().apply { moveTo(tx, topY); quadraticTo(tx + len * 0.6f * kotlin.math.cos(ang), topY + len * 0.6f * kotlin.math.sin(ang) - len * 0.25f, ex, ey) }
+                            drawPath(frond, shade, style = Stroke(w * 0.012f * sc, cap = StrokeCap.Round))
+                        }
+                    }
+                    palm(w * 0.16f, h * 0.42f, w * 0.06f, 1.1f, 0f)
+                    palm(w * 0.30f, h * 0.54f, -w * 0.03f, 0.8f, 1.3f)
+                    palm(w * 0.86f, h * 0.48f, -w * 0.07f, 1f, 2.6f)
+                    silk(h * (0.88f + 0.005f * dA), h * 0.03f, 0.5f, 1.1f, 0.6f, 1f, orbA.copy(alpha = (orbA.alpha * 1.8f).coerceAtMost(1f)), edgeA)
+                }
+                "ink" -> {
+                    // Drops of ink blooming in water, one after another.
+                    val cols = listOf(orbA, orbB, orbC)
+                    for (i in 0 until 7) {
+                        val period = 9000f + i * 1700f
+                        val x0 = ms / period + i * 0.17f
+                        val cyc = kotlin.math.floor(x0)
+                        val prog = x0 - cyc
+                        fun rnd(seed: Float): Float { val v = kotlin.math.sin(seed) * 43758.547f; return v - kotlin.math.floor(v) }
+                        val cx = w * rnd(cyc * 12.9898f + i * 78.233f)
+                        val cy = h * rnd(cyc * 39.346f + i * 11.135f)
+                        val col = cols[i % 3]
+                        val a = (col.alpha * 3f * (1f - prog) * (1f - prog) * kotlin.math.min(1f, prog * 8f) * (1f + voice)).coerceAtMost(1f)
+                        val r = w * (0.08f + 0.55f * prog)
+                        orb(col.copy(alpha = a), cx, cy, r)
+                        orb(col.copy(alpha = a * 0.8f), cx, cy, r * 0.45f)
+                    }
+                }
+                "tawaf" -> {
+                    // Points of light circling one centre, the nearer ones moving faster.
+                    val centre = Offset(w * 0.5f, h * 0.42f)
+                    orb(orbB.copy(alpha = (orbB.alpha * (2.2f + voice)).coerceAtMost(1f)), centre.x, centre.y, w * (0.35f + 0.15f * voice))
+                    val cols = listOf(style.a, style.b, style.c)
+                    for (i in 0 until 70) {
+                        val f = (i * 0.6180339f) % 1f
+                        val rad = w * (0.13f + 0.40f * f)
+                        val ang = i * 2.399f - ms * 0.00042f / (0.35f + f)
+                        val p = Offset(centre.x + rad * kotlin.math.cos(ang), centre.y + rad * 0.62f * kotlin.math.sin(ang))
+                        val depth = 0.6f + 0.4f * kotlin.math.sin(ang)
+                        val r = (1.2f + (i % 3) * 0.6f) * density * depth * (1f + 0.5f * voice)
+                        val col = cols[i % 3]
+                        drawCircle(col.copy(alpha = 0.10f * depth), r * 3.5f, p)
+                        drawCircle(col.copy(alpha = (if (c.isDark) 0.9f else 0.7f) * depth), r, p)
+                    }
+                }
+                "candle" -> {
+                    // One candle, its flame leaning and steadying.
+                    val cx = w * 0.5f
+                    val base = h * 0.74f
+                    val flick = 1f + 0.06f * kotlin.math.sin(ms / 95f) + 0.04f * kotlin.math.sin(ms / 41f) + 0.35f * voice
+                    val fh = h * 0.075f * flick
+                    val fw = w * 0.035f
+                    val sx = w * 0.008f * kotlin.math.sin(ms / 430f)
+                    val warm = Color(0xFFFFB45C)
+                    orb(warm.copy(alpha = (if (c.isDark) 0.30f else 0.22f) * flick.coerceAtMost(1.4f)), cx, base - fh * 0.5f, w * 0.85f)
+                    orb(warm.copy(alpha = 0.35f), cx, base - fh * 0.5f, w * 0.22f)
+                    val bw = w * 0.07f
+                    drawRoundRect(
+                        Brush.verticalGradient(listOf(Color(0xFFFFF3DC).copy(alpha = 0.75f), Color(0xFFFFF3DC).copy(alpha = 0.15f)), startY = base + h * 0.012f, endY = base + h * 0.2f),
+                        topLeft = Offset(cx - bw / 2f, base + h * 0.012f), size = Size(bw, h * 0.2f),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(bw * 0.2f),
+                    )
+                    drawLine(Color.Black.copy(alpha = 0.6f), Offset(cx, base + h * 0.012f), Offset(cx, base - h * 0.004f), strokeWidth = 1.5.dp.toPx())
+                    val flame = Path().apply {
+                        moveTo(cx, base)
+                        cubicTo(cx - fw, base - fh * 0.15f, cx - fw * 0.7f + sx, base - fh * 0.65f, cx + sx * 2f, base - fh)
+                        cubicTo(cx + fw * 0.7f + sx, base - fh * 0.65f, cx + fw, base - fh * 0.15f, cx, base)
+                    }
+                    drawPath(flame, Brush.verticalGradient(listOf(Color(0xFFFFF7E0), warm, Color(0xFFFF7A3C).copy(alpha = 0.85f)), startY = base - fh, endY = base))
+                }
+                "huruf" -> {
+                    // Arabic letters rising and fading like breath on cold air.
+                    val letters = listOf("ا", "ل", "م", "ص", "ر", "ك", "ه", "ي", "ع", "ط", "س", "ح", "ق", "ن")
+                    val cols = listOf(style.a, style.b, style.c)
+                    for (i in letters.indices) {
+                        val prog = (ms * (0.000022f + (i % 4) * 0.000007f) + i * 0.21f) % 1f
+                        val x = w * ((i * 0.6180339f + 0.07f) % 0.86f) + w * 0.03f * kotlin.math.sin(prog * 8f + i)
+                        val y = h * (1.02f - 1.15f * prog)
+                        val layout = textMeasurer.measure(
+                            letters[i],
+                            androidx.compose.ui.text.TextStyle(fontFamily = QuranFont, fontSize = (w * (0.09f + 0.05f * (i % 3))).toSp()),
+                        )
+                        val fade = kotlin.math.sin(prog * 3.1415927f)
+                        drawText(layout, color = cols[i % 3], topLeft = Offset(x, y), alpha = ((if (c.isDark) 0.38f else 0.30f) * fade * (1f + 0.6f * voice)).coerceIn(0f, 1f))
+                    }
+                }
                 "dunes" -> {
                     // Broad, slow hills layered like sand.
                     silk(h * (0.66f + 0.01f * dA), h * 0.060f, 0.55f, 1.2f, 0.5f, 1f, orbB.copy(alpha = orbB.alpha * 1.6f), edgeA)
@@ -617,7 +844,7 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier, badge: String? = n
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(text.uppercase(), style = DuaType.label, color = c.inkMuted)
+        Text(text, style = DuaType.label.copy(fontSize = 13.sp, letterSpacing = 0.1.sp), color = c.inkMuted)
         if (badge != null) {
             Box(
                 Modifier

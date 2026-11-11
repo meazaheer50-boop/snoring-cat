@@ -195,7 +195,7 @@ private fun Hero(done: Int, total: Int) {
         ) {
             Column {
                 Text(
-                    "DAILY REMEMBRANCE",
+                    "Daily remembrance",
                     style = DuaType.label,
                     color = Color.White.copy(alpha = 0.76f),
                 )

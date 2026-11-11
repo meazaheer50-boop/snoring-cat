@@ -131,4 +131,56 @@ class DuaRepository(private val context: Context) {
     suspend fun setLastPage(id: String, page: Int) { context.store.edit { it[pageKey(id)] = page } }
 
     suspend fun setPlaylist(ids: List<String>) { context.store.edit { it[playlistKey] = ids.joinToString(",") } }
+
+    /** Everything the user has set up (reminders, favourites, playlist, progress, settings) as one JSON text. */
+    suspend fun exportBackup(): String {
+        val root = org.json.JSONObject()
+        root.put("app", "daily-dua")
+        root.put("version", 1)
+        val items = org.json.JSONObject()
+        context.store.data.first().asMap().forEach { (k, v) ->
+            val o = org.json.JSONObject()
+            when (v) {
+                is Boolean -> o.put("t", "b").put("v", v)
+                is Int -> o.put("t", "i").put("v", v)
+                is Long -> o.put("t", "l").put("v", v)
+                is String -> o.put("t", "s").put("v", v)
+                is Set<*> -> o.put("t", "set").put("v", org.json.JSONArray(v.map { it.toString() }))
+                else -> return@forEach
+            }
+            items.put(k.name, o)
+        }
+        root.put("items", items)
+        return root.toString(2)
+    }
+
+    /** Replaces the current setup with a saved backup and sets the reminders' alarms again. False if the text is not a backup. */
+    suspend fun importBackup(text: String): Boolean {
+        val items = try {
+            val root = org.json.JSONObject(text)
+            if (root.optString("app") != "daily-dua") return false
+            root.getJSONObject("items")
+        } catch (e: org.json.JSONException) {
+            return false
+        }
+        reminders.first().forEach { ReminderScheduler.cancel(context, it) }
+        context.store.edit { p ->
+            p.clear()
+            for (name in items.keys()) {
+                val o = items.getJSONObject(name)
+                when (o.optString("t")) {
+                    "b" -> p[booleanPreferencesKey(name)] = o.getBoolean("v")
+                    "i" -> p[intPreferencesKey(name)] = o.getInt("v")
+                    "l" -> p[androidx.datastore.preferences.core.longPreferencesKey(name)] = o.getLong("v")
+                    "s" -> p[stringPreferencesKey(name)] = o.getString("v")
+                    "set" -> {
+                        val arr = o.getJSONArray("v")
+                        p[stringSetPreferencesKey(name)] = (0 until arr.length()).map { arr.getString(it) }.toSet()
+                    }
+                }
+            }
+        }
+        rescheduleAll()
+        return true
+    }
 }

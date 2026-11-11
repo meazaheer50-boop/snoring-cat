@@ -218,6 +218,14 @@ class ScreenTour {
             scrollTo("Dark")
             rule.onNodeWithText("Dark").performClick()
             shot("21_settings_dark", 1200)
+            // Every background design, so each one is seen to draw without crashing.
+            for (name in listOf("Aurora", "Dunes", "Contour", "Veil", "Rain", "Moonlight", "Embers", "Mihrab", "Lanterns",
+                "Calligraphy", "Crescent", "Tasbih", "Minarets", "Fajr", "Kiswah", "Dome", "Palms", "Ink", "Tawaf", "Candle", "Letters")) {
+                rule.onNodeWithText(name).performScrollTo().performClick()
+                shot("d_" + name.lowercase(), 900)
+            }
+            rule.onNodeWithText("Silk").performScrollTo().performClick()
+            rule.waitForIdle()
             tab("Today")
             shot("22_today_dark", 1500)
             scrollTo("Surah Al-Mulk")

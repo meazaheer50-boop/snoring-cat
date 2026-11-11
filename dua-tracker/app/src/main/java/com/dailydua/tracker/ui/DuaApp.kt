@@ -2,6 +2,9 @@ package com.dailydua.tracker.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.shrinkHorizontally
@@ -334,86 +337,33 @@ private fun BottomBar(selected: Int, visible: Boolean, onSelect: (Int) -> Unit) 
                     borderWidth = 1.dp,
                 )
                 .padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             items.forEachIndexed { i, item ->
                 val on = i == selected
-                val pillAlpha by animateFloatAsState(
-                    targetValue = if (on) 1f else 0f,
-                    animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
-                    label = "tabPillAlpha",
-                )
-                val tabScale by animateFloatAsState(
-                    targetValue = if (on) 1f else 0.95f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium,
-                    ),
-                    label = "tabScale",
-                )
-                val iconScale by animateFloatAsState(
-                    targetValue = if (on) 1.14f else 1f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium,
-                    ),
-                    label = "tabIconScale",
-                )
-                val contentTint by animateColorAsState(
-                    targetValue = if (on) c.onBrand else c.inkMuted,
-                    animationSpec = tween(durationMillis = 240),
-                    label = "tabContentTint",
-                )
-                val tabWeight by animateFloatAsState(
-                    targetValue = if (on) 2.3f else 1f,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
-                    label = "tabWeight",
-                )
-                Row(
+                // Every tab shows its icon and name, so nothing has to be guessed. Equal widths:
+                // only colours animate, which keeps switching tabs cheap.
+                val pillAlpha by animateFloatAsState(if (on) 1f else 0f, tween(220, easing = FastOutSlowInEasing), label = "tabPillAlpha")
+                val contentTint by animateColorAsState(if (on) c.onBrand else c.inkMuted, tween(220), label = "tabContentTint")
+                Column(
                     Modifier
-                        .weight(tabWeight)
-                        .defaultMinSize(minHeight = 48.dp)
-                        .graphicsLayer {
-                            scaleX = tabScale
-                            scaleY = tabScale
-                        }
-                        .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    c.brand.copy(alpha = pillAlpha),
-                                    c.brand.copy(alpha = 0.82f * pillAlpha),
-                                ),
-                            ),
-                            CircleShape,
-                        )
-                        .border(1.dp, c.glassBrandBorder.copy(alpha = pillAlpha), CircleShape)
+                        .weight(1f)
+                        .defaultMinSize(minHeight = 52.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(c.brand.copy(alpha = pillAlpha), RoundedCornerShape(24.dp))
                         .selectable(selected = on, role = Role.Tab, onClick = { onSelect(i) })
-                        .padding(horizontal = 8.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
+                        .semantics { contentDescription = item.label }
+                        .padding(horizontal = 2.dp, vertical = 7.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
                 ) {
-                    Icon(
-                        item.icon,
-                        contentDescription = if (on) null else item.label,
-                        tint = contentTint,
-                        modifier = Modifier
-                            .size(20.dp)
-                            .graphicsLayer {
-                                scaleX = iconScale
-                                scaleY = iconScale
-                            },
+                    Icon(item.icon, contentDescription = null, tint = contentTint, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        item.label,
+                        style = DuaType.label.copy(letterSpacing = 0.sp, fontSize = 10.sp, lineHeight = 12.sp),
+                        color = contentTint, maxLines = 1, softWrap = false,
                     )
-                    AnimatedVisibility(
-                        visible = on,
-                        enter = fadeIn(tween(220)) + expandHorizontally(tween(260, easing = FastOutSlowInEasing)),
-                        exit = fadeOut(tween(140)) + shrinkHorizontally(tween(220, easing = FastOutSlowInEasing)),
-                    ) {
-                        Row {
-                            Spacer(Modifier.width(8.dp))
-                            Text(item.label, style = DuaType.label.copy(letterSpacing = 0.sp, fontSize = 12.sp), color = contentTint, maxLines = 1)
-                        }
-                    }
                 }
             }
         }
