@@ -60,6 +60,15 @@ jobs:
             mkdir -p ../shots
             adb pull /data/local/tmp/shots ../shots/ || true
             adb logcat -d "*:W" > ../logcat.txt || true
+            # Reinstall check: is the backup file there, and does a fresh install restore from it?
+            sleep 4
+            (echo "--- before uninstall"; adb shell ls -l /sdcard/Documents/DailyDua/; adb shell run-as com.dailydua.tracker cat files/datastore/dua_prefs.preferences_pb | strings | head -40) > ../reinstall.txt 2>&1 || true
+            adb uninstall com.dailydua.tracker >> ../reinstall.txt 2>&1 || true
+            adb logcat -c || true
+            adb install app/build/outputs/apk/debug/app-debug.apk >> ../reinstall.txt 2>&1 || true
+            adb shell am start -n com.dailydua.tracker/.MainActivity || true
+            sleep 8
+            (echo "--- after reinstall"; adb shell run-as com.dailydua.tracker cat files/datastore/dua_prefs.preferences_pb | strings | head -40; adb logcat -d -s AutoBackup:W) >> ../reinstall.txt 2>&1 || true
             adb shell settings put global animator_duration_scale 1 || true
             adb shell settings put global transition_animation_scale 1 || true
             adb shell settings put global window_animation_scale 1 || true
@@ -77,6 +86,7 @@ jobs:
             shots/
             instrument.txt
             logcat.txt
+            reinstall.txt
           if-no-files-found: warn
 
       - name: Publish screenshots to the dua-ui-shots branch
@@ -85,7 +95,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p /tmp/out
-          cp -r shots instrument.txt logcat.txt /tmp/out/ 2>/dev/null || true
+          cp -r shots instrument.txt logcat.txt reinstall.txt /tmp/out/ 2>/dev/null || true
           cd /tmp/out
           git init -q -b dua-ui-shots
           git config user.name "github-actions[bot]"

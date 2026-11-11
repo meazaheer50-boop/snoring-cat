@@ -4,6 +4,7 @@ import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import android.provider.MediaStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +23,7 @@ import kotlinx.coroutines.withContext
  *     the first time the app opens with nothing set up, so a reinstall picks up where it left off.
  */
 object AutoBackup {
+    private const val TAG = "AutoBackup"
     private const val NAME = "daily-dua-backup.json"
     private const val FOLDER = "Documents/DailyDua/"
 
@@ -32,15 +34,18 @@ object AutoBackup {
         val repo = DuaRepository(app)
         scope.launch(Dispatchers.IO) {
             runCatching {
-                if (!repo.isFreshInstall()) return@runCatching
+                val fresh = repo.isFreshInstall()
+                Log.w(TAG, "start: fresh=$fresh")
+                if (!fresh) return@runCatching
                 val text = read(app)
-                if (text != null) repo.importBackup(text)
-            }
+                Log.w(TAG, "start: backup file found=${text != null} size=${text?.length}")
+                if (text != null) Log.w(TAG, "start: restored=${repo.importBackup(text)}")
+            }.onFailure { Log.w(TAG, "start failed", it) }
             repo.markStarted()
             // Save the current state now, then again after every change (batched).
-            runCatching { write(app, repo.exportBackup()) }
+            runCatching { write(app, repo.exportBackup()); Log.w(TAG, "saved") }.onFailure { Log.w(TAG, "save failed", it) }
             repo.changes().drop(1).debounce(2000).collect {
-                runCatching { write(app, repo.exportBackup()) }
+                runCatching { write(app, repo.exportBackup()); Log.w(TAG, "saved") }.onFailure { Log.w(TAG, "save failed", it) }
             }
         }
     }
