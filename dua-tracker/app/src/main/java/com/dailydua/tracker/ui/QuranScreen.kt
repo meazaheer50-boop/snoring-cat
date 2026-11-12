@@ -237,7 +237,7 @@ private fun SurahCard(s: MushafSurah, lastPage: Int, onRead: (MushafSurah) -> Un
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             Pill(
-                text = if (lastPage > 0) "Continue · page ${lastPage + 1} of ${s.pages}" else "Start reading",
+                text = if (lastPage > 0) "Continue · page ${lastPage + 1} of ${if (s.pages > 0) s.pages else s.pagesB}" else "Start reading",
                 filled = true,
                 modifier = Modifier.weight(1f),
             ) { onRead(s) }
@@ -301,7 +301,15 @@ fun MushafReader(
 ) {
     val c = Tokens.colors
     BackHandler(onBack = onClose)
-    val pager = rememberPagerState(initialPage = startPage.coerceIn(0, surah.pages - 1)) { surah.pages }
+    // Two printed editions: 0 is the plain one, 1 the ornate one. Some surahs have only one of them.
+    val hasPlain = surah.pages > 0
+    val hasOrnate = surah.pagesB > 0
+    var edition by rememberSaveable { mutableStateOf(if (hasPlain) 0 else 1) }
+    val pageCount = if (edition == 0) surah.pages else surah.pagesB
+    val pager = rememberPagerState(initialPage = startPage.coerceIn(0, (pageCount - 1).coerceAtLeast(0))) { pageCount }
+    LaunchedEffect(edition) {
+        if (pager.currentPage > pageCount - 1) pager.scrollToPage(pageCount - 1)
+    }
     val scope = rememberCoroutineScope()
     var zoomed by remember { mutableStateOf(false) }
     var chrome by remember { mutableStateOf(true) }
@@ -376,7 +384,7 @@ fun MushafReader(
                         userScrollEnabled = !zoomed,
                         modifier = Modifier.fillMaxSize(),
                     ) { page ->
-                        MushafPage(surah, page, onZoomChange = { zoomed = it }, onTap = { if (!fullscreen) chrome = !chrome })
+                        MushafPage(surah, page, edition, onZoomChange = { zoomed = it }, onTap = { if (!fullscreen) chrome = !chrome })
                     }
                 }
             }
@@ -446,6 +454,14 @@ fun MushafReader(
                         modifier = Modifier.weight(1f).testTag("verseToggle"),
                         horizontalPadding = 8.dp,
                     ) { pagesMode = !pagesMode }
+                    if (pagesMode && hasPlain && hasOrnate) {
+                        Pill(
+                            text = if (edition == 0) "Ornate" else "Plain",
+                            filled = false,
+                            modifier = Modifier.weight(1f).testTag("editionToggle"),
+                            horizontalPadding = 8.dp,
+                        ) { edition = if (edition == 0) 1 else 0 }
+                    }
                     if (!pagesMode) {
                         Pill(
                             text = if (showEnglish) "Arabic" else "English",
@@ -628,13 +644,13 @@ private fun TextReader(surah: MushafSurah, gold: Color, showEnglish: Boolean, ar
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun MushafPage(surah: MushafSurah, page: Int, onZoomChange: (Boolean) -> Unit, onTap: () -> Unit) {
+private fun MushafPage(surah: MushafSurah, page: Int, edition: Int, onZoomChange: (Boolean) -> Unit, onTap: () -> Unit) {
     val c = Tokens.colors
     val context = LocalContext.current
-    val bitmap by produceState<ImageBitmap?>(null, surah.id, page) {
+    val bitmap by produceState<ImageBitmap?>(null, surah.id, page, edition) {
         value = withContext(Dispatchers.IO) {
             runCatching {
-                context.assets.open("mushaf/${surah.id}/${page + 1}.png").use { BitmapFactory.decodeStream(it) }?.asImageBitmap()
+                context.assets.open(if (edition == 0) "mushaf/${surah.id}/${page + 1}.png" else "mushaf/${surah.id}/b/${page + 1}.jpg").use { BitmapFactory.decodeStream(it) }?.asImageBitmap()
             }.getOrNull()
         }
     }
@@ -667,7 +683,7 @@ private fun MushafPage(surah: MushafSurah, page: Int, onZoomChange: (Boolean) ->
             Image(
                 bitmap = bmp,
                 contentDescription = "${surah.nameEn}, page ${page + 1}",
-                colorFilter = ColorFilter.tint(c.ink),
+                colorFilter = if (edition == 0) ColorFilter.tint(c.ink) else null,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxSize()

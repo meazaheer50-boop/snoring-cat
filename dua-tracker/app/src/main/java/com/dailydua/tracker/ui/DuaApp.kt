@@ -299,6 +299,26 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
                 )
             }
 
+            val introSeen by vm.introSeen.collectAsStateWithLifecycle()
+            if (!introSeen && !com.dailydua.tracker.data.AutoBackup.needsRestore) {
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = {},
+                    containerColor = Tokens.colors.surface200,
+                    title = { Text("Welcome to Daily Dua", style = DuaType.title, color = Tokens.colors.ink) },
+                    text = {
+                        Text(
+                            "Not all 114 surahs are in the app yet. For now you can read and listen to Al-Mulk, Al-Waqi\u2019ah, Al-Kahf, Ya-Sin, Ar-Rahman, Ad-Dhuha, Al-Ikhlas and An-Nas, along with the daily duas and the 99 Names. More surahs will be added in future updates.",
+                            style = DuaType.body, color = Tokens.colors.inkMuted,
+                        )
+                    },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(onClick = { vm.dismissIntro() }) {
+                            Text("Got it", color = Tokens.colors.brand)
+                        }
+                    },
+                )
+            }
+
             reminderFor?.let { d ->
                 ReminderDialog(
                     initial = Reminder(id = System.currentTimeMillis().toString(), label = d.title, hour = 8, minute = 0, duaId = d.id),

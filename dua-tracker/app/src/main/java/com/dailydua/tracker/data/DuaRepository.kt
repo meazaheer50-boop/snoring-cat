@@ -39,6 +39,7 @@ class DuaRepository(private val context: Context) {
     private val backgroundKey = stringPreferencesKey("background")
     private val designKey = stringPreferencesKey("background_design")
     private val startedKey = booleanPreferencesKey("backup_started")
+    private val introKey = booleanPreferencesKey("intro_seen")
     /** Entries look like "2026-11-03|waking". */
     private val done = stringSetPreferencesKey("done")
     private val remindersKey = stringSetPreferencesKey("reminders")
@@ -135,6 +136,8 @@ class DuaRepository(private val context: Context) {
 
     /** True until the app has run once on this install (a restored cloud backup counts as already started). */
     suspend fun isFreshInstall(): Boolean = context.store.data.first().let { it[startedKey] != true && it.asMap().isEmpty() }
+    val introSeen: Flow<Boolean> = context.store.data.map { it[introKey] == true }
+    suspend fun markIntroSeen() { context.store.edit { it[introKey] = true } }
     suspend fun markStarted() { context.store.edit { it[startedKey] = true } }
     fun changes(): Flow<Any> = context.store.data
 

@@ -103,6 +103,11 @@ class ScreenTour {
         rule.waitUntil(8000) { rule.onAllNodesWithText("Start fresh").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithText("Start fresh").performClick()
         rule.waitForIdle()
+        // Then the first-launch notice about which surahs are included.
+        rule.waitUntil(8000) { rule.onAllNodesWithText("Got it").fetchSemanticsNodes().isNotEmpty() }
+        shot("00_intro", 600)
+        rule.onNodeWithText("Got it").performClick()
+        rule.waitForIdle()
         step("today") {
             shot("01_today_light", 1500)
             scrollTo("Dua al-Qunoot")
@@ -181,6 +186,8 @@ class ScreenTour {
             shot("12_mushaf_page2", 1500)
             rule.onRoot().performTouchInput { swipeRight(startX = width * 0.3f, endX = width * 0.75f) }
             shot("12b_mushaf_page3", 1500)
+            rule.onNodeWithTag("editionToggle").performClick()
+            shot("12c_mushaf_ornate", 2000)
             back()
             shot("13_quran_continue")
             scrollTo("The 99 Names of Allah")
@@ -190,6 +197,14 @@ class ScreenTour {
             tab("Favourites")
             shot("13c_favourites_tab", 1500)
             tab("Quran")
+            // A surah that only has the ornate edition.
+            scrollTo("Surah Al-Kahf")
+            rule.onAllNodesWithText("Surah Al-Kahf").onFirst().performClick()
+            shot("13d_kahf_text", 1500)
+            rule.onNodeWithTag("verseToggle").performClick()
+            shot("13e_kahf_pages", 2000)
+            rule.onNodeWithTag("verseToggle").performClick()
+            back()
         }
         step("playlist") {
             tab("Playlist")

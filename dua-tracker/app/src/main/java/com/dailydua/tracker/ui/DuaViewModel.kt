@@ -86,6 +86,9 @@ class DuaViewModel(app: Application) : AndroidViewModel(app) {
     fun saveReminder(r: Reminder) = viewModelScope.launch { repo.saveReminder(r) }
     fun deleteReminder(r: Reminder) = viewModelScope.launch { repo.deleteReminder(r) }
     fun setPlaylist(ids: List<String>) = viewModelScope.launch { repo.setPlaylist(ids) }
+    /** True until the first-launch notice has been read; starts true so it never flashes. */
+    val introSeen: StateFlow<Boolean> = repo.introSeen.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    fun dismissIntro() = viewModelScope.launch { repo.markIntroSeen() }
     fun setLastPage(id: String, page: Int) = viewModelScope.launch { repo.setLastPage(id, page) }
     fun rescheduleReminders() = viewModelScope.launch { repo.rescheduleAll() }
 }
