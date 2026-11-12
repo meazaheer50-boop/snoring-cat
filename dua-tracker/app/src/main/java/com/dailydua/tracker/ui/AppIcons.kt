@@ -12,6 +12,11 @@ object AppIcons {
         name = name, defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f,
     ).addPath(addPathNodes(path), fill = SolidColor(Color.Black)).build()
 
+    /** Half-filled circle: reading brightness. */
+    val Contrast: ImageVector by lazy {
+        icon("Contrast", "M12,22C6.48,22 2,17.52 2,12S6.48,2 12,2s10,4.48 10,10 -4.48,10 -10,10zM12,4v16c4.41,0 8,-3.59 8,-8s-3.59,-8 -8,-8z")
+    }
+
     /** Open book. */
     val Book: ImageVector by lazy {
         icon(

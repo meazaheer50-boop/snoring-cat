@@ -88,6 +88,8 @@ class DuaViewModel(app: Application) : AndroidViewModel(app) {
     fun setPlaylist(ids: List<String>) = viewModelScope.launch { repo.setPlaylist(ids) }
     /** True until the first-launch notice has been read; starts true so it never flashes. */
     val introSeen: StateFlow<Boolean> = repo.introSeen.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val readTone: StateFlow<Int> = repo.readTone.stateIn(viewModelScope, SharingStarted.Eagerly, -1)
+    fun setReadTone(t: Int) = viewModelScope.launch { repo.setReadTone(t) }
     fun dismissIntro() = viewModelScope.launch { repo.markIntroSeen() }
     fun setLastPage(id: String, page: Int) = viewModelScope.launch { repo.setLastPage(id, page) }
     fun rescheduleReminders() = viewModelScope.launch { repo.rescheduleAll() }

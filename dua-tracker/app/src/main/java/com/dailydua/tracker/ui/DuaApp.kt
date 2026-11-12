@@ -256,6 +256,8 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
                         onToggleFavorite = { vm.toggleFavorite(surah.id) },
                         onReminder = { reminderFor = SampleDuas.all.firstOrNull { it.id == surah.id } },
                         onClose = { readingId = null },
+                        tone = vm.readTone.collectAsStateWithLifecycle().value,
+                        onTone = { vm.setReadTone(it) },
                     )
                 }
             }
