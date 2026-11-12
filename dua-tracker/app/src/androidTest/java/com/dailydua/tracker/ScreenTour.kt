@@ -189,7 +189,6 @@ class ScreenTour {
             rule.onNodeWithTag("toneToggle").performClick()
             shot("12e_tone_next2", 900)
             rule.onNodeWithTag("toneToggle").performClick()
-            shot("12f_tone_next3", 900)
             back()
             shot("13_quran_continue")
             scrollTo("The 99 Names of Allah")

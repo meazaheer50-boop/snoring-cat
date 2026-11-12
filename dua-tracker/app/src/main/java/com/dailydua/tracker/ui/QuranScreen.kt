@@ -301,14 +301,14 @@ fun MushafReader(
     tone: Int = -1,
     onTone: (Int) -> Unit = {},
 ) {
-    // The reader has its own brightness: 0 light, 1 mid-light, 2 mid-dark, 3 dark. It follows the app theme until changed.
-    val eff = if (tone in 0..3) tone else if (Tokens.colors.isDark) 3 else 0
+    // The reader has its own brightness: 0 light, 1 mid, 2 dark. It follows the app theme until changed.
+    val eff = if (tone in 0..2) tone else if (Tokens.colors.isDark) 2 else 0
     val bg = LocalBackgroundStyle.current
     com.dailydua.tracker.ui.theme.DuaTheme(
-        if (eff >= 2) com.dailydua.tracker.ui.theme.ThemeMode.DARK else com.dailydua.tracker.ui.theme.ThemeMode.LIGHT,
+        if (eff >= 1) com.dailydua.tracker.ui.theme.ThemeMode.DARK else com.dailydua.tracker.ui.theme.ThemeMode.LIGHT,
         bg.accentDark, bg.accentLight,
     ) {
-        MushafReaderBody(surah, startPage, onPageChange, arabicSize, onSize, favorite, onToggleFavorite, onReminder, onClose, eff) { onTone((eff + 1) % 4) }
+        MushafReaderBody(surah, startPage, onPageChange, arabicSize, onSize, favorite, onToggleFavorite, onReminder, onClose, eff) { onTone((eff + 1) % 3) }
     }
 }
 
@@ -361,7 +361,7 @@ private fun MushafReaderBody(
     val dua = SampleDuas.all.firstOrNull { it.id == surah.audioDuaId }
     val playingThis = dua != null && ps.mediaId == dua.id && ps.isPlaying
     val ask = LocalAskNotifications.current
-    val paper = listOf(Color(0xFFFBF7EC), Color(0xFFE3D6BA), Color(0xFF2A2926), Color(0xFF0A100D))[readerTone]
+    val paper = listOf(Color(0xFFFBF7EC), Color(0xFF2A2926), Color(0xFF0A100D))[readerTone]
     val gold = if (c.isDark) Color(0xFFD9B35A) else Color(0xFFB8860B)
     val showChrome = chrome && !fullscreen
 
@@ -508,12 +508,12 @@ private fun MushafReaderBody(
                                 onCycleTone()
                                 android.widget.Toast.makeText(
                                     toneContext,
-                                    listOf("Light", "Mid light", "Mid dark", "Dark")[(readerTone + 1) % 4],
+                                    listOf("Light", "Mid", "Dark")[(readerTone + 1) % 3],
                                     android.widget.Toast.LENGTH_SHORT,
                                 ).show()
                             },
                         contentAlignment = Alignment.Center,
-                    ) { Icon(AppIcons.Contrast, contentDescription = "Reading brightness", tint = c.ink) }
+                    ) { Icon(listOf(AppIcons.Sun, AppIcons.Contrast, AppIcons.Moon)[readerTone], contentDescription = "Reading brightness", tint = c.ink) }
                     if (dua != null) {
                         Box(
                             Modifier
