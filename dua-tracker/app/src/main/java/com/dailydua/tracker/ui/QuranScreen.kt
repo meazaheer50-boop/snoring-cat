@@ -498,6 +498,7 @@ private fun MushafReaderBody(
                             horizontalPadding = 8.dp,
                         ) { showEnglish = !showEnglish }
                     }
+                    if (pagesMode) FavoriteButton(favorite, onToggleFavorite, size = 48.dp)
                     val toneContext = LocalContext.current
                     Box(
                         Modifier

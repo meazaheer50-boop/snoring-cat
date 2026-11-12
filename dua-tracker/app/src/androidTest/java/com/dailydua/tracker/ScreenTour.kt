@@ -197,6 +197,10 @@ class ScreenTour {
             back()
             tab("Favourites")
             shot("13c_favourites_tab", 1500)
+            rule.onNodeWithTag("favFilter").performClick()
+            shot("13c1_fav_filter_menu", 700)
+            rule.onNodeWithText("Surahs").performClick()
+            shot("13c2_fav_surahs", 1000)
             tab("Quran")
             // A surah that only has the ornate edition.
             scrollTo("Surah Al-Kahf")
