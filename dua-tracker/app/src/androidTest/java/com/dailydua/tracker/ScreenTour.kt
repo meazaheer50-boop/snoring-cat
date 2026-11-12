@@ -99,10 +99,6 @@ class ScreenTour {
 
     @Test
     fun tour() {
-        // A fresh install asks whether to restore a backup; a new user starts fresh.
-        rule.waitUntil(8000) { rule.onAllNodesWithText("Start fresh").fetchSemanticsNodes().isNotEmpty() }
-        rule.onNodeWithText("Start fresh").performClick()
-        rule.waitForIdle()
         // Then the first-launch notice about which surahs are included.
         rule.waitUntil(8000) { rule.onAllNodesWithText("Got it").fetchSemanticsNodes().isNotEmpty() }
         shot("00_intro", 600)

@@ -22,13 +22,13 @@ import kotlinx.coroutines.launch
 /**
  * Keeps the user's setup (reminders, favourites, playlist, progress, every setting) saved without a manual step.
  *
- * Android 11+ gives a reinstalled app a new identity, so it can no longer open the file its
- * previous install wrote. After a reinstall the app therefore asks once, with one tap, to
- * pick that file; from then on it keeps writing to the very same file.
+ * Restoring after a reinstall happens with no prompt through Android's own cloud backup
+ * (the saved data is included in the backup rules, and a refresh is requested after every
+ * change). Android 11+ stops a reinstalled app from reading the file its previous install
+ * wrote, so that file is a manual fallback only: Settings has "Restore from a backup file",
+ * which uses [pickerIntent] and [restoreFrom].
  *
- *  - First install: the copy is written to Documents/DailyDua after every change.
- *  - Reinstall: [needsRestore] turns true; [restoreFrom] reads the chosen file and keeps
- *    writing to it (it holds a permission to that file).
+ *  - Every change is also copied to Documents/DailyDua/daily-dua-backup.json.
  */
 object AutoBackup {
     private const val TAG = "AutoBackup"
@@ -57,9 +57,9 @@ object AutoBackup {
                     if (own != null) {
                         Log.w(TAG, "start: restored from own file=${repo.importBackup(own)}")
                     } else {
-                        needsRestore = true
-                        Log.w(TAG, "start: waiting for the user to choose the backup file")
-                        resolved.await()
+                        // Nothing to restore silently. Android's own cloud backup, if it has a copy, has
+                        // already restored the data before this point, so this is a genuinely new start.
+                        Log.w(TAG, "start: nothing to restore")
                     }
                 }
             }.onFailure { Log.w(TAG, "start failed", it) }
@@ -105,6 +105,8 @@ object AutoBackup {
     }
 
     private suspend fun save() {
+        // Ask Android to refresh its cloud backup soon; that copy restores itself after a reinstall.
+        runCatching { android.app.backup.BackupManager(app).dataChanged() }
         runCatching {
             val text = repo.exportBackup()
             val saved = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("uri", null)

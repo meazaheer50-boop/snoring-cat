@@ -38,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 import androidx.compose.ui.text.style.TextAlign
 import com.dailydua.tracker.data.Reminder
 import com.dailydua.tracker.data.SampleDuas
@@ -284,6 +285,26 @@ fun SettingsScreen(ui: UiState, vm: DuaViewModel) {
             color = c.inkMuted,
             modifier = Modifier.padding(top = 24.dp, start = 4.dp),
         )
+        val restoreScope = androidx.compose.runtime.rememberCoroutineScope()
+        val restoreContext = LocalContext.current
+        val restorePicker = androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+        ) { result ->
+            val uri = result.data?.data
+            if (uri != null) restoreScope.launch {
+                val ok = com.dailydua.tracker.data.AutoBackup.restoreFrom(uri)
+                android.widget.Toast.makeText(
+                    restoreContext,
+                    if (ok) "Your setup is back" else "That file is not a Daily Dua backup",
+                    android.widget.Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+        Pill(
+            text = "Restore from a backup file",
+            filled = false,
+            modifier = Modifier.padding(top = 12.dp),
+        ) { restorePicker.launch(com.dailydua.tracker.data.AutoBackup.pickerIntent()) }
         Text(
             "Quran text from Tanzil.net (Uthmani). English translation: Saheeh International. The other duas were typed by hand and the recited duas were written down by ear, so check any wording you rely on against a trusted source.",
             style = DuaType.caption,
