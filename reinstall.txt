@@ -1,0 +1,51 @@
+--- before uninstall
+total 8
+-rwxrwx--- 1 u0_a175 media_rw 726 2026-11-12 15:02 daily-dua-backup.json
+backup_started
+intro_seen
+	page_mulk
+arabic_size
+	favorites
+mulk
+reading_tone3
+	page_kahf
+playlist
+E*Cqunoot,khatm,waqiah,mulk,kahf,yasin,rahman,dhuha,ikhlas,nas,names99
+theme
+DARK
+background_design
+silk
+page_waqiah
+Success
+Performing Streamed Install
+Success
+--- after reinstall
+cat: files/datastore/dua_prefs.preferences_pb: No such file or directory
+--------- beginning of main
+11-12 15:03:02.450  6601  6638 W AutoBackup: start: fresh=true
+11-12 15:03:02.475  6601  6638 W AutoBackup: start: access=false fileVisible=true
+11-12 15:03:02.502  6601  6638 W AutoBackup: start: a backup file is on the phone, waiting for access
+--- after access allowed
+intro_seen
+	page_mulk
+arabic_size
+	favorites
+mulk
+reading_tone3
+	page_kahf
+playlist
+E*Cqunoot,khatm,waqiah,mulk,kahf,yasin,rahman,dhuha,ikhlas,nas,names99
+theme
+DARK
+background_design
+silk
+page_waqiah
+backup_started
+--------- beginning of main
+11-12 15:03:02.450  6601  6638 W AutoBackup: start: fresh=true
+11-12 15:03:02.475  6601  6638 W AutoBackup: start: access=false fileVisible=true
+11-12 15:03:02.502  6601  6638 W AutoBackup: start: a backup file is on the phone, waiting for access
+11-12 15:03:11.087  6704  6725 W AutoBackup: start: fresh=true
+11-12 15:03:11.088  6704  6725 W AutoBackup: start: access=true fileVisible=true
+11-12 15:03:11.180  6704  6728 W AutoBackup: start: restored from the backup file=true
+11-12 15:03:11.198  6704  6725 W AutoBackup: saved to file
