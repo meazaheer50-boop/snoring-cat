@@ -392,13 +392,14 @@ private fun MushafReaderBody(
                         .border(1.dp, gold.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
                         .padding(horizontal = 22.dp, vertical = 4.dp),
                 ) { Text(surah.nameAr, style = DuaType.arabic(22), color = c.ink) }
-                Text(
-                    "Surah ${surah.number}",
-                    style = DuaType.caption,
-                    color = c.inkMuted,
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.weight(1f),
-                )
+                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Surah ${surah.number}", style = DuaType.caption, color = c.inkMuted, textAlign = TextAlign.End)
+                    // In page mode the heart lives here, so the bottom bar keeps room for its labels.
+                    if (pagesMode) {
+                        Spacer(Modifier.width(8.dp))
+                        FavoriteButton(favorite, onToggleFavorite, size = 40.dp)
+                    }
+                }
             }
             }
 
@@ -498,7 +499,6 @@ private fun MushafReaderBody(
                             horizontalPadding = 8.dp,
                         ) { showEnglish = !showEnglish }
                     }
-                    if (pagesMode) FavoriteButton(favorite, onToggleFavorite, size = 48.dp)
                     val toneContext = LocalContext.current
                     Box(
                         Modifier
