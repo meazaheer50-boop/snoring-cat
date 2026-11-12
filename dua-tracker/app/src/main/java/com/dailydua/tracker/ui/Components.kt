@@ -649,58 +649,148 @@ fun GlassBackground(content: @Composable BoxScope.() -> Unit) {
                     }
                 }
                 "kaaba" -> {
-                    // The Kaaba at night with pilgrims circling it, the gold belt of its cloth catching the light.
-                    val cx = w * 0.5f
+                    // The Kaaba at night: black kiswah with its gold belt and door, the white marble base, the
+                    // minarets of the Haram behind it and pilgrims circling in rings.
                     val gold = c.gold
-                    val fw = w * 0.30f
-                    val fh = h * 0.16f
-                    val depth = w * 0.16f
-                    val skew = h * 0.035f
-                    val x0 = cx - fw * 0.62f
-                    val baseY = h * 0.52f
-                    val x1 = x0 + fw
-                    val top = baseY - fh
+                    val cx = w * 0.5f
                     val glow = 1f + 0.9f * voice
-                    orb(Color.White.copy(alpha = (if (c.isDark) 0.16f else 0.30f) * glow.coerceAtMost(1.6f)), cx, top, w * 0.9f)
-                    orb(orbB.copy(alpha = (orbB.alpha * 2f).coerceAtMost(1f)), cx, baseY, w * 0.7f)
-                    val ringCx = cx
-                    val ringCy = baseY + h * 0.015f
-                    fun ringPoint(i: Int): Pair<Offset, Float> {
-                        val a = i * 6.2831855f / 60f - ms * 0.00013f
-                        val rx = w * 0.40f
-                        val ry = h * 0.060f
-                        return Offset(ringCx + rx * kotlin.math.cos(a), ringCy + ry * kotlin.math.sin(a)) to kotlin.math.sin(a)
+                    val night = Color(0xFF07070A)
+                    val baseY = h * 0.58f
+                    val fw = w * 0.34f
+                    val fh = fw * 1.10f
+                    val depth = fw * 0.52f
+                    val x0 = cx - (fw + depth) / 2f
+                    val x1 = x0 + fw
+                    val x2 = x1 + depth
+                    val top = baseY - fh
+                    val farTop = top + fh * 0.035f
+                    val farBot = baseY - fh * 0.045f
+                    orb(Color.White.copy(alpha = ((if (c.isDark) 0.14f else 0.28f) * glow).coerceAtMost(0.5f)), cx, h * 0.30f, w * 1.0f)
+                    orb(orbB.copy(alpha = (orbB.alpha * 2f).coerceAtMost(1f)), cx, h * 0.56f, w * 0.8f)
+                    // a soft column of light rising from the house
+                    drawRect(
+                        Brush.verticalGradient(listOf(Color.Transparent, gold.copy(alpha = (0.10f * glow).coerceAtMost(0.28f))), startY = 0f, endY = top),
+                        topLeft = Offset(x0 + fw * 0.1f, 0f), size = Size(fw + depth * 0.8f, top),
+                    )
+                    // minarets of the Haram
+                    fun minaret(x: Float, hgt: Float, sc: Float) {
+                        val sh = night.copy(alpha = if (c.isDark) 0.60f else 0.34f)
+                        val base = baseY - fh * 0.12f
+                        val bw = w * 0.011f * sc
+                        drawPath(Path().apply { moveTo(x - bw, base); lineTo(x - bw * 0.7f, base - hgt); lineTo(x + bw * 0.7f, base - hgt); lineTo(x + bw, base); close() }, sh)
+                        for (k in 1..3) drawRect(sh, Offset(x - bw * 1.8f, base - hgt * (0.42f + 0.17f * k)), Size(bw * 3.6f, h * 0.0035f))
+                        drawPath(Path().apply { moveTo(x - bw * 1.0f, base - hgt); quadraticTo(x, base - hgt - bw * 3.6f, x + bw * 1.0f, base - hgt); close() }, sh)
+                        orb(gold.copy(alpha = (0.20f * glow).coerceAtMost(0.4f)), x, base - hgt - bw * 3.4f, w * 0.05f)
+                        drawCircle(gold.copy(alpha = 0.85f), bw * 0.30f, Offset(x, base - hgt - bw * 3.6f))
                     }
-                    // pilgrims behind the building
-                    for (i in 0 until 60) { val (p, d) = ringPoint(i); if (d < 0f) drawCircle(Color.White.copy(alpha = 0.50f), 1.6f * density, p) }
-                    // front and right faces
+                    minaret(w * 0.09f, h * 0.30f, 1.25f)
+                    minaret(w * 0.23f, h * 0.21f, 1f)
+                    minaret(w * 0.77f, h * 0.21f, 1f)
+                    minaret(w * 0.91f, h * 0.30f, 1.25f)
+                    // the mataf: marble floor and the rings the pilgrims walk
+                    val gy = baseY + fh * 0.02f
+                    drawOval(
+                        Brush.radialGradient(listOf(Color.White.copy(alpha = if (c.isDark) 0.10f else 0.26f), Color.Transparent), center = Offset(cx, gy), radius = w * 0.52f),
+                        topLeft = Offset(cx - w * 0.52f, gy - w * 0.09f), size = Size(w * 1.04f, w * 0.18f),
+                    )
+                    for (k in 0 until 3) {
+                        val rx = w * (0.30f + 0.07f * k)
+                        drawOval(gold.copy(alpha = 0.14f - 0.03f * k), Offset(cx - rx, gy - rx * 0.17f), Size(rx * 2f, rx * 0.34f), style = Stroke(1.dp.toPx()))
+                    }
+                    fun pilgrim(ring: Int, i: Int, behind: Boolean) {
+                        val n = 26 + ring * 8
+                        val a = i * 6.2831855f / n + ring * 0.4f - ms * (0.00016f - 0.00003f * ring)
+                        val d = kotlin.math.sin(a)
+                        if ((d < 0f) != behind) return
+                        val rx = w * (0.30f + 0.07f * ring)
+                        val px = cx + rx * kotlin.math.cos(a)
+                        val py = gy + rx * 0.17f * d
+                        val sc = 0.8f + 0.5f * d
+                        val body = Color.White.copy(alpha = (0.45f + 0.4f * d).coerceIn(0.3f, 0.9f))
+                        val bw = 1.5f * density * sc
+                        val bh = 5.2f * density * sc
+                        drawRoundRect(body, Offset(px - bw, py - bh), Size(bw * 2f, bh), androidx.compose.ui.geometry.CornerRadius(bw))
+                        drawCircle(body, bw * 0.95f, Offset(px, py - bh - bw * 0.9f))
+                    }
+                    for (ring in 0 until 3) for (i in 0 until 26 + ring * 8) pilgrim(ring, i, true)
+                    // the house: front and right faces of black cloth
                     val front = Path().apply { moveTo(x0, top); lineTo(x1, top); lineTo(x1, baseY); lineTo(x0, baseY); close() }
-                    val side = Path().apply { moveTo(x1, top); lineTo(x1 + depth, top - skew); lineTo(x1 + depth, baseY - skew); lineTo(x1, baseY); close() }
-                    drawPath(front, Color(0xFF0A0A0C))
-                    drawPath(side, Color(0xFF1A1A1F))
-                    drawPath(front, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.10f), Color.Transparent), startY = top, endY = baseY))
-                    // gold belt (hizam) across the upper third of both faces
-                    val bTop = top + fh * 0.18f
-                    val bBot = top + fh * 0.36f
-                    val beltFront = Path().apply { moveTo(x0, bTop); lineTo(x1, bTop); lineTo(x1, bBot); lineTo(x0, bBot); close() }
-                    val beltSide = Path().apply { moveTo(x1, bTop); lineTo(x1 + depth, bTop - skew); lineTo(x1 + depth, bBot - skew); lineTo(x1, bBot); close() }
-                    drawPath(beltFront, gold.copy(alpha = 0.85f))
-                    drawPath(beltSide, gold.copy(alpha = 0.60f))
-                    val dash = Path()
-                    var xx = x0 + fw * 0.04f
-                    while (xx < x1 - fw * 0.04f) { dash.addRect(Rect(xx, (bTop + bBot) / 2f - 1.2f * density, xx + fw * 0.035f, (bTop + bBot) / 2f + 1.2f * density)); xx += fw * 0.07f }
-                    drawPath(dash, Color(0xFF0A0A0C).copy(alpha = 0.55f))
-                    // golden door on the front face
-                    val dw = fw * 0.16f
-                    val dx = x0 + fw * 0.66f
-                    drawRoundRect(gold.copy(alpha = 0.9f), Offset(dx, baseY - fh * 0.52f), Size(dw, fh * 0.52f), androidx.compose.ui.geometry.CornerRadius(dw * 0.12f))
-                    drawRoundRect(Color(0xFF0A0A0C).copy(alpha = 0.5f), Offset(dx + dw * 0.12f, baseY - fh * 0.46f), Size(dw * 0.76f, fh * 0.40f), androidx.compose.ui.geometry.CornerRadius(dw * 0.08f))
-                    drawPath(front, gold.copy(alpha = 0.35f), style = Stroke(1.dp.toPx()))
-                    drawPath(side, gold.copy(alpha = 0.22f), style = Stroke(1.dp.toPx()))
-                    // pilgrims in front
-                    for (i in 0 until 60) { val (p, d) = ringPoint(i); if (d >= 0f) drawCircle(Color.White.copy(alpha = 0.55f + 0.4f * d), (1.6f + 1.2f * d) * density, p) }
-                    // soft reflection of the light on the ground
-                    orb(Color.White.copy(alpha = if (c.isDark) 0.07f else 0.18f), cx, baseY + h * 0.05f, w * 0.55f)
+                    val side = Path().apply { moveTo(x1, top); lineTo(x2, farTop); lineTo(x2, farBot); lineTo(x1, baseY); close() }
+                    drawPath(front, Brush.verticalGradient(listOf(Color(0xFF15151A), Color(0xFF050507)), startY = top, endY = baseY))
+                    drawPath(side, Brush.horizontalGradient(listOf(Color(0xFF1E1E25), Color(0xFF0D0D11)), startX = x1, endX = x2))
+                    // folds in the cloth, swaying a little
+                    for (k in 1..10) {
+                        val fx = x0 + fw * k / 11f
+                        val sway = 1.1f * density * kotlin.math.sin(ms / 1900f + k)
+                        drawLine(Color.White.copy(alpha = 0.045f), Offset(fx + sway, top), Offset(fx - sway, baseY), strokeWidth = 1.2f * density)
+                    }
+                    for (k in 1..5) {
+                        val t = k / 6f
+                        val fx = x1 + depth * t
+                        drawLine(Color.White.copy(alpha = 0.035f), Offset(fx, top + (farTop - top) * t), Offset(fx, baseY + (farBot - baseY) * t), strokeWidth = 1.1f * density)
+                    }
+                    // the hizam: gold belt with the name of Allah woven along it
+                    val bTop = top + fh * 0.20f
+                    val bBot = top + fh * 0.34f
+                    val beltBrush = Brush.horizontalGradient(
+                        listOf(gold.copy(alpha = 0.70f), gold.copy(alpha = 0.95f), gold.copy(alpha = 0.72f), gold.copy(alpha = 0.95f)), startX = x0, endX = x1,
+                    )
+                    drawRect(beltBrush, Offset(x0, bTop), Size(fw, bBot - bTop))
+                    val beltSide = Path().apply {
+                        moveTo(x1, bTop); lineTo(x2, farTop + (bTop - top) * 0.86f); lineTo(x2, farTop + (bBot - top) * 0.86f); lineTo(x1, bBot); close()
+                    }
+                    drawPath(beltSide, gold.copy(alpha = 0.58f))
+                    drawLine(night.copy(alpha = 0.55f), Offset(x0, bTop + 2.5f * density), Offset(x1, bTop + 2.5f * density), 1f * density)
+                    drawLine(night.copy(alpha = 0.55f), Offset(x0, bBot - 2.5f * density), Offset(x1, bBot - 2.5f * density), 1f * density)
+                    val word = textMeasurer.measure(
+                        "ٱللَّهُ",
+                        androidx.compose.ui.text.TextStyle(fontFamily = QuranFont, fontSize = ((bBot - bTop) * 0.62f).toSp()),
+                    )
+                    val step = word.size.width + fw * 0.05f
+                    var wx = x0 + fw * 0.03f
+                    while (wx + word.size.width < x1 - fw * 0.02f) {
+                        drawText(word, color = night, topLeft = Offset(wx, (bTop + bBot) / 2f - word.size.height / 2f), alpha = 0.78f)
+                        wx += step
+                    }
+                    var sx = x1 + depth * 0.10f
+                    while (sx < x2 - depth * 0.06f) {
+                        val t = (sx - x1) / depth
+                        val yMid = (bTop + bBot) / 2f + (farTop - top) * t * 0.86f
+                        drawCircle(night.copy(alpha = 0.6f), 1.6f * density, Offset(sx, yMid))
+                        sx += depth * 0.16f
+                    }
+                    // the embroidered panel and the golden door
+                    val pw = fw * 0.30f
+                    val px = x0 + fw * 0.58f
+                    drawRect(gold.copy(alpha = 0.40f), Offset(px, bBot + fh * 0.04f), Size(pw, fh * 0.20f), style = Stroke(1.2f * density))
+                    drawRect(gold.copy(alpha = 0.22f), Offset(px + pw * 0.07f, bBot + fh * 0.07f), Size(pw * 0.86f, fh * 0.14f), style = Stroke(1f * density))
+                    val dw = fw * 0.18f
+                    val dh = fh * 0.36f
+                    val dx = px + (pw - dw) / 2f
+                    val dy = baseY - fh * 0.06f - dh
+                    drawRoundRect(
+                        Brush.verticalGradient(listOf(gold, gold.copy(alpha = 0.7f)), startY = dy, endY = dy + dh),
+                        Offset(dx, dy), Size(dw, dh), androidx.compose.ui.geometry.CornerRadius(dw * 0.16f),
+                    )
+                    for (r in 0 until 3) for (k in 0 until 2) {
+                        drawRect(
+                            night.copy(alpha = 0.45f),
+                            Offset(dx + dw * (0.10f + 0.46f * k), dy + dh * (0.07f + 0.31f * r)), Size(dw * 0.38f, dh * 0.25f), style = Stroke(1f * density),
+                        )
+                    }
+                    orb(gold.copy(alpha = (0.18f * glow).coerceAtMost(0.4f)), dx + dw / 2f, dy + dh * 0.5f, w * 0.12f)
+                    // white marble base (shadharwan) and the gold hem of the cloth
+                    drawRect(Color.White.copy(alpha = 0.55f), Offset(x0, baseY - fh * 0.035f), Size(fw, fh * 0.035f))
+                    drawPath(Path().apply { moveTo(x1, baseY - fh * 0.035f); lineTo(x2, farBot - fh * 0.03f); lineTo(x2, farBot); lineTo(x1, baseY); close() }, Color.White.copy(alpha = 0.38f))
+                    drawLine(gold.copy(alpha = 0.55f), Offset(x0, baseY - fh * 0.05f), Offset(x1, baseY - fh * 0.05f), 1.2f * density)
+                    // the Black Stone corner, set in silver
+                    val bs = Offset(x0 + fw * 0.035f, baseY - fh * 0.22f)
+                    drawCircle(Color(0xFFCFCFD6).copy(alpha = 0.85f), fw * 0.026f, bs)
+                    drawCircle(Color(0xFF0B0B0D), fw * 0.017f, bs)
+                    drawPath(front, gold.copy(alpha = 0.30f), style = Stroke(1.dp.toPx()))
+                    drawPath(side, gold.copy(alpha = 0.20f), style = Stroke(1.dp.toPx()))
+                    for (ring in 0 until 3) for (i in 0 until 26 + ring * 8) pilgrim(ring, i, false)
+                    orb(gold.copy(alpha = if (c.isDark) 0.07f else 0.16f), cx, gy + h * 0.02f, w * 0.55f)
                 }
                 "dome" -> {
                     // Looking up into a dome: rings of petals turning slowly around the light at its crown.

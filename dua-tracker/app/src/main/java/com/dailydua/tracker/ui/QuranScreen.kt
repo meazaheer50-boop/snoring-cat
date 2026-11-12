@@ -349,7 +349,7 @@ fun MushafReader(
                 .navigationBarsPadding(),
         ) {
             // Surah banner, always visible, like a printed mushaf header.
-            AnimatedVisibility(!fullscreen) {
+            AnimatedVisibility(!fullscreen && (!pagesMode || chrome)) {
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -390,7 +390,7 @@ fun MushafReader(
             }
 
             // Page number medallion.
-            if (pagesMode && !fullscreen) {
+            if (pagesMode && !fullscreen && chrome) {
                 Box(Modifier.fillMaxWidth().padding(vertical = 6.dp), contentAlignment = Alignment.Center) {
                     Box(
                         Modifier
@@ -650,7 +650,7 @@ private fun MushafPage(surah: MushafSurah, page: Int, edition: Int, onZoomChange
     val bitmap by produceState<ImageBitmap?>(null, surah.id, page, edition) {
         value = withContext(Dispatchers.IO) {
             runCatching {
-                context.assets.open(if (edition == 0) "mushaf/${surah.id}/${page + 1}.png" else "mushaf/${surah.id}/b/${page + 1}.jpg").use { BitmapFactory.decodeStream(it) }?.asImageBitmap()
+                context.assets.open(if (edition == 0) "mushaf/${surah.id}/${page + 1}.png" else "mushaf/${surah.id}/b/${page + 1}.png").use { BitmapFactory.decodeStream(it) }?.asImageBitmap()
             }.getOrNull()
         }
     }
@@ -672,8 +672,7 @@ private fun MushafPage(surah: MushafSurah, page: Int, edition: Int, onZoomChange
             .pointerInput(Unit) {
                 detectTapGestures(onTap = { onTap() }, onDoubleTap = { setScale(if (scale > 1f) 1f else 2.2f) })
             }
-            .transformable(transform, canPan = { scale > 1f })
-            .padding(horizontal = 8.dp),
+            .transformable(transform, canPan = { scale > 1f }),
         contentAlignment = Alignment.Center,
     ) {
         val bmp = bitmap
@@ -683,7 +682,7 @@ private fun MushafPage(surah: MushafSurah, page: Int, edition: Int, onZoomChange
             Image(
                 bitmap = bmp,
                 contentDescription = "${surah.nameEn}, page ${page + 1}",
-                colorFilter = if (edition == 0) ColorFilter.tint(c.ink) else null,
+                colorFilter = ColorFilter.tint(c.ink),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxSize()
