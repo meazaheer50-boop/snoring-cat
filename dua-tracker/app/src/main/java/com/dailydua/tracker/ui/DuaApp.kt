@@ -262,8 +262,33 @@ fun DuaApp(vm: DuaViewModel = viewModel(), launchDuaId: String? = null, onLaunch
                 }
             }
 
+            if (com.dailydua.tracker.data.AutoBackup.needsAccess) {
+                val accessContext = androidx.compose.ui.platform.LocalContext.current
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = {},
+                    containerColor = Tokens.colors.surface200,
+                    title = { Text("Bring your setup back", style = DuaType.title, color = Tokens.colors.ink) },
+                    text = {
+                        Text(
+                            "Daily Dua keeps a backup of your reminders, favourites and settings on this phone. To read it, allow Daily Dua to access files, then come back. This is asked once.",
+                            style = DuaType.body, color = Tokens.colors.inkMuted,
+                        )
+                    },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(onClick = {
+                            runCatching { accessContext.startActivity(com.dailydua.tracker.data.AutoBackup.accessIntent()) }
+                        }) { Text("Allow", color = Tokens.colors.brand) }
+                    },
+                    dismissButton = {
+                        androidx.compose.material3.TextButton(onClick = { com.dailydua.tracker.data.AutoBackup.declineAccess() }) {
+                            Text("Not now", color = Tokens.colors.inkMuted)
+                        }
+                    },
+                )
+            }
+
             val introSeen by vm.introSeen.collectAsStateWithLifecycle()
-            if (!introSeen) {
+            if (!introSeen && !com.dailydua.tracker.data.AutoBackup.needsAccess) {
                 androidx.compose.material3.AlertDialog(
                     onDismissRequest = {},
                     containerColor = Tokens.colors.surface200,

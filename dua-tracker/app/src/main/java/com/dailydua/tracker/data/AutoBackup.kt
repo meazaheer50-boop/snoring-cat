@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
+import android.provider.Settings
 import android.provider.MediaStore
 import android.util.Log
 import androidx.compose.runtime.getValue
@@ -18,6 +20,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
+import java.io.File
 
 /**
  * Keeps the user's setup (reminders, favourites, playlist, progress, every setting) saved without a manual step.
@@ -36,9 +39,45 @@ object AutoBackup {
     private const val FOLDER = "Documents/DailyDua/"
     private const val PREFS = "backup_target"
 
-    /** True on a reinstall, until the user restores or starts fresh. The app shows a prompt while it is true. */
+    /**
+     * True on a reinstall when a backup file is on the phone but the app may not read it yet. Android hides files
+     * an earlier install wrote, unless the user allows "all files access" once; the app shows one prompt for that.
+     */
+    var needsAccess by mutableStateOf(false)
+        private set
+
+    /** Kept for the manual file picker in Settings. */
     var needsRestore by mutableStateOf(false)
         private set
+
+    private val backupFile: File
+        get() = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "DailyDua/$NAME")
+
+    /** With all-files access the app reads and writes the backup as an ordinary file, so it survives reinstalls. */
+    fun hasFileAccess(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()
+
+    /** Opens the system page where the user allows access for this app. */
+    fun accessIntent(): Intent =
+        Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:${app.packageName}"))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+    /** Called when the app returns to the front, e.g. after the user allowed access. */
+    fun onResume() {
+        if (!needsAccess || !hasFileAccess()) return
+        scope?.launch(Dispatchers.IO) {
+            runCatching {
+                val text = backupFile.takeIf { it.exists() }?.readText()
+                Log.w(TAG, "access granted: restored=${text?.let { repo.importBackup(it) }}")
+            }.onFailure { Log.w(TAG, "restore after access failed", it) }
+            needsAccess = false
+            resolved.complete(Unit)
+        }
+    }
+
+    /** The user chose not to allow access. */
+    fun declineAccess() { needsAccess = false; resolved.complete(Unit) }
+
+    private var scope: CoroutineScope? = null
 
     private val resolved = CompletableDeferred<Unit>()
     private lateinit var app: Context
@@ -48,18 +87,28 @@ object AutoBackup {
     fun start(context: Context, scope: CoroutineScope) {
         app = context.applicationContext
         repo = DuaRepository(app)
+        this.scope = scope
         scope.launch(Dispatchers.IO) {
             runCatching {
                 val fresh = repo.isFreshInstall()
                 Log.w(TAG, "start: fresh=$fresh")
                 if (fresh) {
-                    val own = readOwn()
-                    if (own != null) {
-                        Log.w(TAG, "start: restored from own file=${repo.importBackup(own)}")
+                    val exists = runCatching { backupFile.exists() }.getOrDefault(false)
+                    Log.w(TAG, "start: access=${hasFileAccess()} fileVisible=$exists")
+                    if (hasFileAccess()) {
+                        val text = backupFile.takeIf { it.exists() }?.readText()
+                        Log.w(TAG, "start: restored from the backup file=${text?.let { repo.importBackup(it) }}")
                     } else {
-                        // Nothing to restore silently. Android's own cloud backup, if it has a copy, has
-                        // already restored the data before this point, so this is a genuinely new start.
-                        Log.w(TAG, "start: nothing to restore")
+                        val own = readOwn()
+                        if (own != null) {
+                            Log.w(TAG, "start: restored from own file=${repo.importBackup(own)}")
+                        } else if (exists && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            needsAccess = true
+                            Log.w(TAG, "start: a backup file is on the phone, waiting for access")
+                            resolved.await()
+                        } else {
+                            Log.w(TAG, "start: nothing to restore")
+                        }
                     }
                 }
             }.onFailure { Log.w(TAG, "start failed", it) }
@@ -109,6 +158,12 @@ object AutoBackup {
         runCatching { android.app.backup.BackupManager(app).dataChanged() }
         runCatching {
             val text = repo.exportBackup()
+            if (hasFileAccess()) {
+                backupFile.parentFile?.mkdirs()
+                backupFile.writeText(text)
+                Log.w(TAG, "saved to file")
+                return
+            }
             val saved = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("uri", null)
             if (saved != null) {
                 val ok = runCatching { writeTo(Uri.parse(saved), text) }.isSuccess

@@ -37,6 +37,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        com.dailydua.tracker.data.AutoBackup.onResume()
+    }
+
     /** Ask for the display's fastest mode (90 Hz or more where the phone supports it). */
     private fun requestHighRefreshRate() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return

@@ -69,6 +69,12 @@ jobs:
             adb shell am start -n com.dailydua.tracker/.MainActivity || true
             sleep 8
             (echo "--- after reinstall"; adb shell run-as com.dailydua.tracker cat files/datastore/dua_prefs.preferences_pb | strings | head -40; adb logcat -d -s AutoBackup:W) >> ../reinstall.txt 2>&1 || true
+            # Allow file access (what the user does once from the prompt), come back, and check the restore.
+            adb shell appops set --uid com.dailydua.tracker MANAGE_EXTERNAL_STORAGE allow >> ../reinstall.txt 2>&1 || true
+            adb shell am force-stop com.dailydua.tracker || true
+            adb shell am start -n com.dailydua.tracker/.MainActivity || true
+            sleep 8
+            (echo "--- after access allowed"; adb shell run-as com.dailydua.tracker cat files/datastore/dua_prefs.preferences_pb | strings | head -40; adb logcat -d -s AutoBackup:W) >> ../reinstall.txt 2>&1 || true
             adb shell settings put global animator_duration_scale 1 || true
             adb shell settings put global transition_animation_scale 1 || true
             adb shell settings put global window_animation_scale 1 || true
